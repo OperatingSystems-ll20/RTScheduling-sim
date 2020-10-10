@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <allegro5/allegro_image.h>
 #include <simulator.h>
 
 bool _render;
@@ -20,6 +21,8 @@ void setup(){
     _eventQueue = al_create_event_queue();
     checkInit(_eventQueue, "Event Queue");
 
+    checkInit(al_init_image_addon(), "Image Addon");
+
     _display = al_create_display(SCREEN_WIDHT, SCREEN_HEIGHT);
     checkInit(_display, "Display");
 
@@ -36,7 +39,14 @@ void setup(){
 }
 
 
+void loadAssets(){
+    _mazeImg = al_load_bitmap("./res/maze.png");
+    checkInit(_mazeImg, "Maze image");
+}
+
+
 void cleanUp(){
+    al_destroy_bitmap(_mazeImg);
     al_destroy_display(_display);
     al_destroy_timer(_timer);
     al_destroy_event_queue(_eventQueue);
@@ -55,10 +65,9 @@ void simLoop(){
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
-                if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
+                if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
                     _exitLoop = true;
-                    break;
-                }
+                break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
                 _exitLoop = true;
@@ -68,7 +77,8 @@ void simLoop(){
         if(_exitLoop) break;
 
         if(_render && al_is_event_queue_empty(_eventQueue)){
-            al_clear_to_color(al_map_rgb(0, 0, 0));
+            al_clear_to_color(al_map_rgb(255, 255, 255));
+            al_draw_bitmap(_mazeImg, (SCREEN_WIDHT/2)-256, (SCREEN_HEIGHT/2)-256, 0);
             al_flip_display();
             _render = false;
         }
@@ -81,6 +91,7 @@ void simLoop(){
 
 int main(){
     setup();
+    loadAssets();
     simLoop();
 
     exit(0);
