@@ -5,4 +5,4 @@ APP_NAME  = "simulator"
 CFLAGS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags)
 
 build:
-		gcc -I $(INCLUDE_DIR) $(APP_NAME).c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS)
+		gcc -I $(INCLUDE_DIR) $(APP_NAME).c collision.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS)
