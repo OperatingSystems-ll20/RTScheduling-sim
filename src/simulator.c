@@ -78,7 +78,7 @@ void simLoop(){
 
         if(_render && al_is_event_queue_empty(_eventQueue)){
             al_clear_to_color(al_map_rgb(255, 255, 255));
-            al_draw_bitmap(_mazeImg, (SCREEN_WIDHT/2)-256, (SCREEN_HEIGHT/2)-256, 0);
+            al_draw_bitmap(_mazeImg, (SCREEN_WIDHT/2)-240, ((SCREEN_HEIGHT/2)-240)*2, 0);
             al_flip_display();
             _render = false;
         }
