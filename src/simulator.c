@@ -3,7 +3,7 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <consts.h>
-#include <collision.h>
+#include <objects.h>
 #include <simulator.h>
 
 bool _render;

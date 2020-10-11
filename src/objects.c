@@ -1,5 +1,5 @@
 #include <consts.h>
-#include <collision.h>
+#include <objects.h>
 
 
 void loadMazeTiles(ALLEGRO_BITMAP* pMazeTiny){

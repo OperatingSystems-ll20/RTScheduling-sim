@@ -1,7 +1,8 @@
-#ifndef _COLLISION_H
-#define _COLLISION_H
+#ifndef _OBJECTS_H
+#define _OBJECTS_H
 
 #include <allegro5/allegro5.h>
+#include <consts.h>
 
 enum TILE_TYPE {WALL, PATH};
 
@@ -11,7 +12,7 @@ typedef struct MazeTiles{
     int type;
 } MazeTile;
 
-MazeTile _mazeTiles[480][480];
+MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
 
 void loadMazeTiles(ALLEGRO_BITMAP* pMazeImg);
 
