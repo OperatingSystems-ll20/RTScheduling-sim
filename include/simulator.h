@@ -2,11 +2,14 @@
 #define _SIMULATOR_H
 
 #include <allegro5/allegro5.h>
+#include <pthread.h>
 
 static const double REFRESH_RATE = 30.0;
 
 extern bool _render;
 extern bool _exitLoop;
+
+int martianAmount;
 
 struct {
     int x0;
@@ -23,8 +26,11 @@ ALLEGRO_BITMAP *_mazeImg;
 ALLEGRO_BITMAP *_mazeImgTiny;
 
 MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
+
 //TEST MARTIAN
-Martian *_testMartian;
+Martian **_martians;
+pthread_t *_threads;
+
 
 //Temporal
 int mouseX, mouseY;
