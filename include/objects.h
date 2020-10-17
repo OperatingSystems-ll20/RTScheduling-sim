@@ -22,7 +22,7 @@ typedef struct Martians{
     int period;
     int running;
     int doWork;
-    pthread_mutex_t mutex;
+    //pthread_mutex_t mutex;
     pthread_cond_t cond;
 } Martian;
 

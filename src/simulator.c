@@ -6,6 +6,7 @@
 #include <allegro5/allegro_font.h>
 #include <consts.h>
 #include <objects.h>
+#include <array.h>
 #include <simulator.h>
 
 bool _render;
@@ -106,14 +107,14 @@ bool checkMove(Martian *pMartian){
 void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
     while(martian->running){
-        pthread_mutex_lock(&martian->mutex);
-        while(!martian->doWork) pthread_cond_wait(&martian->cond, &martian->mutex);
+        pthread_mutex_lock(&_mutex);
+        while(!martian->doWork) pthread_cond_wait(&martian->cond, &_mutex);
 
         if(!checkMove(martian))
             martian->direction = (rand() % (3 - 0 + 1)) + 0;
 
         martian->doWork = 0;
-        pthread_mutex_unlock(&martian->mutex);
+        pthread_mutex_unlock(&_mutex);
     }
 }
 
@@ -145,9 +146,10 @@ void setup(){
     _render = true;
     _exitLoop = false;
     squareX = squareY = 0;
-    martianAmount = 1;
+    martianAmount = 2;
 
     _threads = malloc(martianAmount * sizeof(pthread_t));
+    pthread_mutex_init(&_mutex, NULL);
 
     // al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     // al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
@@ -171,7 +173,7 @@ void createMartians(){
     _martians = malloc(martianAmount * sizeof(Martian));
     for(int i=0; i<martianAmount; i++){
         _martians[i] = newMartian(MAZE_START_X*TILE_SIZE, MAZE_START_Y*TILE_SIZE, RIGHT, 5, 10);
-        pthread_mutex_init(&_martians[i]->mutex, NULL);
+        //pthread_mutex_init(&_martians[i]->mutex, NULL);
         pthread_cond_init(&_martians[i]->cond, NULL);
     }
 }

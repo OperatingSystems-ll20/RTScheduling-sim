@@ -30,6 +30,7 @@ MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
 //TEST MARTIAN
 Martian **_martians;
 pthread_t *_threads;
+pthread_mutex_t _mutex;
 
 
 //Temporal
