@@ -4,12 +4,12 @@
 
 int arrayInit(DynamicArray *pArray, unsigned int pInitialSize, unsigned int pElementSize){
     pArray->array = malloc(pInitialSize * sizeof(void*));
-    if(!pArray->array) return -1;
+    if(!pArray->array) return 0;
 
     pArray->elements = 0;
     pArray->size = pInitialSize;
     pArray->elementSize = pElementSize;
-    return 0;
+    return 1;
 }
 
 

@@ -147,7 +147,8 @@ void setup(){
     squareX = squareY = 0;
     martianAmount = 2;
 
-    _threads = malloc(martianAmount * sizeof(pthread_t));
+    checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
+    checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
     pthread_mutex_init(&_mutex, NULL);
 
     // al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
@@ -169,11 +170,10 @@ void loadAssets(){
 }
 
 void createMartians(){
-    _martians = malloc(martianAmount * sizeof(Martian));
     for(int i=0; i<martianAmount; i++){
-        _martians[i] = newMartian(MAZE_START_X*TILE_SIZE, MAZE_START_Y*TILE_SIZE, RIGHT, 5, 10);
-        //pthread_mutex_init(&_martians[i]->mutex, NULL);
-        pthread_cond_init(&_martians[i]->cond, NULL);
+        Martian *martian = newMartian(MAZE_START_X*TILE_SIZE, MAZE_START_Y*TILE_SIZE, RIGHT, 5, 10);
+        pthread_cond_init(&martian->cond, NULL);
+        arrayInsert(&_martians, (void*)martian);
     }
 }
 
@@ -186,10 +186,8 @@ void cleanUp(){
     al_destroy_timer(_timer);
     al_destroy_event_queue(_eventQueue);
 
-    for(int i=0; i<martianAmount; i++)
-        free(_martians[i]);
-    free(_martians);
-    free(_threads);
+    arrayFree(&_martians);
+    arrayFree(&_threads);
 }
 
 
@@ -199,15 +197,17 @@ void simLoop(){
     char *message = "NO COLLISION";
 
     for(int i=0; i<martianAmount; i++){
-        pthread_create(&_threads[i], NULL, moveMartian, (void*)_martians[i]);
+        pthread_t *pthread = malloc(sizeof(pthread_t));
+        arrayInsert(&_threads, (void*)pthread);
+        pthread_create(pthread, NULL, moveMartian, _martians.array[i]);
     }
 
     while(1){
         al_wait_for_event(_eventQueue, &event);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
-                _martians[0]->doWork = 1;
-                pthread_cond_signal(&_martians[0]->cond);
+                ((Martian*)_martians.array[0])->doWork = 1;
+                pthread_cond_signal(&((Martian*)_martians.array[0])->cond);
 
                 _render = true;
                 break;
@@ -222,9 +222,9 @@ void simLoop(){
             case ALLEGRO_EVENT_KEY_DOWN:
                 if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
                     for(int i=0; i<martianAmount; i++){
-                        _martians[i]->running = 0;
-                        _martians[i]->doWork = 1;
-                        pthread_cond_signal(&_martians[i]->cond);
+                        ((Martian*)_martians.array[i])->running = 0;
+                        ((Martian*)_martians.array[i])->doWork = 1;
+                        pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
                     }
 
                     _exitLoop = true;
@@ -232,9 +232,9 @@ void simLoop(){
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
                 for(int i=0; i<martianAmount; i++){
-                    _martians[i]->running = 0;
-                    _martians[i]->doWork = 1;
-                    pthread_cond_signal(&_martians[i]->cond);
+                    ((Martian*)_martians.array[i])->running = 0;
+                    ((Martian*)_martians.array[i])->doWork = 1;
+                    pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
                 }
                 _exitLoop = true;
                 break;
@@ -249,10 +249,10 @@ void simLoop(){
             al_draw_filled_rectangle(squareX, squareY, squareX + 16, squareY + 16, al_map_rgb(255, 0, 0));
 
             for(int i=0; i<martianAmount; i++){
-                al_draw_filled_rectangle(_martians[i]->posX + MazeBounds.x0,
-                    _martians[i]->posY + MazeBounds.y0,
-                    _martians[i]->posX + MazeBounds.x0 + MARTIAN_SIZE,
-                    _martians[i]->posY + MazeBounds.y0 + 16,
+                al_draw_filled_rectangle(((Martian*)_martians.array[i])->posX + MazeBounds.x0,
+                    ((Martian*)_martians.array[i])->posY + MazeBounds.y0,
+                    ((Martian*)_martians.array[i])->posX + MazeBounds.x0 + MARTIAN_SIZE,
+                    ((Martian*)_martians.array[i])->posY + MazeBounds.y0 + 16,
                     al_map_rgb(0, 255, 0));
             }
 
@@ -264,7 +264,8 @@ void simLoop(){
     }
 
     for(int i=0; i<martianAmount; i++)
-        pthread_join(_threads[i], NULL);
+        pthread_join(*(pthread_t*)_threads.array[i], NULL);
+
     cleanUp();
 }
 

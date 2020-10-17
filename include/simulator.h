@@ -28,10 +28,9 @@ ALLEGRO_BITMAP *_mazeImgTiny;
 
 MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
 
-//TEST MARTIAN
+DynamicArray _martians;
+DynamicArray _threads;
 
-Martian **_martians;
-pthread_t *_threads;
 pthread_mutex_t _mutex;
 
 
