@@ -3,6 +3,7 @@
 
 #include <allegro5/allegro5.h>
 #include <pthread.h>
+#include <dynamicArray.h>
 
 static const double REFRESH_RATE = 30.0;
 
@@ -28,6 +29,7 @@ ALLEGRO_BITMAP *_mazeImgTiny;
 MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
 
 //TEST MARTIAN
+
 Martian **_martians;
 pthread_t *_threads;
 pthread_mutex_t _mutex;

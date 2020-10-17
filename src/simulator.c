@@ -6,7 +6,6 @@
 #include <allegro5/allegro_font.h>
 #include <consts.h>
 #include <objects.h>
-#include <array.h>
 #include <simulator.h>
 
 bool _render;

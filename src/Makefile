@@ -1,10 +1,10 @@
 BIN_DIR = "../bin"
 INCLUDE_DIR = "../include"
-LIB_HEADER = "../libArray/include"
+LIB_HEADER = "../libDynamicArray/include"
 LIB_COMP = "../bin/lib"
 
 APP_NAME  = "simulator"
-LIB_NAME = array
+LIB_NAME = dynamicArray
 
 CFLAGS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags) -lpthread
 

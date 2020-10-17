@@ -1,6 +1,6 @@
 BIN_DIR = "./bin"
 SRC_DIR = "./src"
-LIB_ARRAY_DIR = "./libArray"
+LIB_ARRAY_DIR = "./libDynamicArray"
 APP_NAME = "simulator"
 
 all: buildApp

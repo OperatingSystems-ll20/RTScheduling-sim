@@ -1,6 +1,5 @@
 LIB_DIR = ./lib
 
-#Generates both executables
 all: static dynamic
 
 static:

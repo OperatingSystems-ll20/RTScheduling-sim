@@ -1,7 +1,7 @@
 INCLUDE_DIR = ../include
 INSTALL_DIR = ../../bin/lib
-COMP_NAME = libarray
-LIB_NAME = array
+COMP_NAME = libdynamicArray
+LIB_NAME = dynamicArray
 
 #Compiles the library in both versions, static and dynamic
 all: static dynamic clean
