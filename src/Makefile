@@ -9,7 +9,7 @@ LIB_NAME = dynamicArray
 CFLAGS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags) -lpthread
 
 buildStatic:
-		gcc -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(APP_NAME).c objects.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS) -l$(LIB_NAME)
+		gcc -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(APP_NAME).c objects.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS) -lallegro_ttf -l$(LIB_NAME)
 
 buildDynamic:
 		gcc -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(APP_NAME).c objects.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS) -Bdynamic $(LIB_COMP)/lib$(LIB_NAME).so

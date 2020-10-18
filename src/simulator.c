@@ -136,24 +136,25 @@ void setup(){
 
     _display = al_create_display(SCREEN_WIDHT, SCREEN_HEIGHT);
     checkInit(_display, "Display");
+    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
+    // al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
 
     al_register_event_source(_eventQueue, al_get_keyboard_event_source());
     al_register_event_source(_eventQueue, al_get_display_event_source(_display));
     al_register_event_source(_eventQueue, al_get_mouse_event_source());
     al_register_event_source(_eventQueue, al_get_timer_event_source(_timer));
 
+    _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 12, 0);
+    _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
+
     _render = true;
     _exitLoop = false;
-    squareX = squareY = 0;
     martianAmount = 2;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
     pthread_mutex_init(&_mutex, NULL);
-
-    // al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
-    // al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
-    // al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
 }
 
 
@@ -179,6 +180,8 @@ void createMartians(){
 
 
 void cleanUp(){
+    nk_allegro5_font_del(_NKfont);
+    nk_allegro5_shutdown();
     al_destroy_bitmap(_mazeImg);
     al_destroy_bitmap(_mazeImgTiny);
     al_destroy_font(_font);
@@ -193,9 +196,11 @@ void cleanUp(){
 
 void simLoop(){
     ALLEGRO_EVENT event;
+    bool newEvent;
     al_start_timer(_timer);
     char *message = "NO COLLISION";
 
+    //Allocate and start the threads
     for(int i=0; i<martianAmount; i++){
         pthread_t *pthread = malloc(sizeof(pthread_t));
         arrayInsert(&_threads, (void*)pthread);
@@ -203,20 +208,16 @@ void simLoop(){
     }
 
     while(1){
-        al_wait_for_event(_eventQueue, &event);
+        ALLEGRO_TIMEOUT timeout;
+        al_init_timeout(&timeout, 1.0/10.0);
+        newEvent = al_wait_for_event_until(_eventQueue, &event, &timeout);
+        // al_wait_for_event(_eventQueue, &event);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
                 ((Martian*)_martians.array[0])->doWork = 1;
                 pthread_cond_signal(&((Martian*)_martians.array[0])->cond);
 
                 _render = true;
-                break;
-
-            case ALLEGRO_EVENT_MOUSE_AXES:
-                mouseX = event.mouse.x;
-                mouseY = event.mouse.y;
-                squareX = mouseX-8;
-                squareY = mouseY-8;
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
@@ -242,12 +243,43 @@ void simLoop(){
 
         if(_exitLoop) break;
 
-        if(_render && al_is_event_queue_empty(_eventQueue)){
-            al_clear_to_color(al_map_rgb(255, 255, 255));
+        nk_input_begin(_NKcontext);
+        if (newEvent) {
+            while (newEvent) {
+                nk_allegro5_handle_event(&event);
+                newEvent = al_get_next_event(_eventQueue, &event);
+            }
+        }
+        nk_input_end(_NKcontext);
+
+        /* GUI */
+        if (nk_begin(_NKcontext, "Demo", nk_rect(MazeBounds.x1+10, MazeBounds.y0, 250, 480),
+            NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
+        {
+            enum {EASY, HARD};
+            static int op = EASY;
+            static int property = 20;
+
+            nk_layout_row_static(_NKcontext, 30, 80, 1);
+            if (nk_button_label(_NKcontext, "button"))
+                fprintf(stdout, "button pressed\n");
+            nk_layout_row_dynamic(_NKcontext, 30, 2);
+            if (nk_option_label(_NKcontext, "easy", op == EASY)) op = EASY;
+            if (nk_option_label(_NKcontext, "hard", op == HARD)) op = HARD;
+            nk_layout_row_dynamic(_NKcontext, 22, 1);
+            nk_property_int(_NKcontext, "Compression:", 0, &property, 100, 10, 1);
+        }
+        nk_end(_NKcontext);
+
+        al_clear_to_color(al_map_rgb(255, 255, 255));
+        nk_allegro5_render();
+
+        if(_render /*&& al_is_event_queue_empty(_eventQueue)*/){
+            // al_clear_to_color(al_map_rgb(255, 255, 255));
             al_draw_text(_font, al_map_rgb(0, 0, 0), 0, 0, 0, message);
             al_draw_bitmap(_mazeImg, MazeBounds.x0, MazeBounds.y0, 0);
-            al_draw_filled_rectangle(squareX, squareY, squareX + 16, squareY + 16, al_map_rgb(255, 0, 0));
 
+            //Draw the martians
             for(int i=0; i<martianAmount; i++){
                 al_draw_filled_rectangle(((Martian*)_martians.array[i])->posX + MazeBounds.x0,
                     ((Martian*)_martians.array[i])->posY + MazeBounds.y0,
@@ -256,13 +288,13 @@ void simLoop(){
                     al_map_rgb(0, 255, 0));
             }
 
-
             al_flip_display();
             _render = false;
         }
 
     }
 
+    //Stop all threads
     for(int i=0; i<martianAmount; i++)
         pthread_join(*(pthread_t*)_threads.array[i], NULL);
 
