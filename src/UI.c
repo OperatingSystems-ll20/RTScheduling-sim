@@ -5,8 +5,8 @@
 
 #define NK_IMPLEMENTATION
 #define NK_ALLEGRO5_IMPLEMENTATION
-#include <nuklear.h>
-#include <nuklear_allegro5.h>
+#include <nuklear/nuklear.h>
+#include <nuklear/nuklear_allegro5.h>
 
 void setCustomStyle(struct nk_context *pNKcontext){
     struct nk_color table[NK_COLOR_COUNT];

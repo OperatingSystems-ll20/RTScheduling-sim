@@ -7,8 +7,8 @@
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
-#include <nuklear.h>
-#include <nuklear_allegro5.h>
+#include <nuklear/nuklear.h>
+#include <nuklear/nuklear_allegro5.h>
 
 typedef void (*funcPtr)(struct nk_context *pNKcontext, Martian *pMartian);
 

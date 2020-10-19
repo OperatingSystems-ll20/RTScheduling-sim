@@ -8,7 +8,7 @@
 
 
 static const int TILE_SIZE = 32;
-static const int MARTIAN_SIZE = 16;
+static const int MARTIAN_SIZE = 15;
 static const int MARTIAN_SPEED = 6;
 
 static const int MAZE_START_X = 0;

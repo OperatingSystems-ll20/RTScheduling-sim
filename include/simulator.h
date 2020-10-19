@@ -9,8 +9,8 @@
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
-#include <nuklear.h>
-#include <nuklear_allegro5.h>
+#include <nuklear/nuklear.h>
+#include <nuklear/nuklear_allegro5.h>
 
 static const double REFRESH_RATE = 30.0;
 extern bool _render;
@@ -40,8 +40,9 @@ DynamicArray _HUDfunctions;
 pthread_mutex_t _mutex;
 
 static void checkInit(bool pTest, const char *pDescription);
-static bool checkMove(Martian *pMartian);
 static void stopAllThreads();
+static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY);
+static bool checkMove(Martian *pMartian);
 static void *moveMartian(void *pMartianData);
 
 static void setup();
