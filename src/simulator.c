@@ -1,23 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <consts.h>
 #include <objects.h>
+#include <UI.h>
 #include <simulator.h>
 
 bool _render;
 bool _exitLoop;
 
-void checkInit(bool pTest, const char *pDescription){
+static void checkInit(bool pTest, const char *pDescription){
     if(pTest) return;
     printf("Error: Couldn't initialize %s\n", pDescription);
     exit(1);
 }
 
-bool checkMove(Martian *pMartian){
+static bool checkMove(Martian *pMartian){
     int x1 = pMartian->posX + MARTIAN_SIZE;
     int y1 = pMartian->posY + MARTIAN_SIZE;
     int newX, newY;
@@ -37,8 +39,12 @@ bool checkMove(Martian *pMartian){
                 }
                 else validMove = false;
             }
-            else if((newX + MazeBounds.x0) < MazeBounds.x0){
-                validMove = false;
+            else if((newX + _mazeBounds.x0) < _mazeBounds.x0){
+                if(pMartian->posX != (relX0*TILE_SIZE)){
+                    newX = pMartian->posX - (pMartian->posX - (relX0*TILE_SIZE));
+                    validMove = true;
+                }
+                else validMove = false;
             }
             else validMove = true;
             break;
@@ -55,8 +61,14 @@ bool checkMove(Martian *pMartian){
                 }
                 else validMove = false;
             }
-            else if((newX+MARTIAN_SIZE+MazeBounds.x0) > MazeBounds.x1)
-                validMove = false;
+            else if((newX+MARTIAN_SIZE+_mazeBounds.x0) > _mazeBounds.x1){
+                if((pMartian->posX + MARTIAN_SIZE) != (relX1*TILE_SIZE)){
+                    newX = pMartian->posX + ((relX1*TILE_SIZE) - (pMartian->posX + MARTIAN_SIZE));
+                    validMove = true;
+                }
+                else validMove = false;
+            }
+
             else validMove = true;
             break;
 
@@ -72,8 +84,14 @@ bool checkMove(Martian *pMartian){
                 }
                 else  validMove = false;
             }
-            else if((newY+MazeBounds.y0) < MazeBounds.y0)
-                validMove = false;
+            else if((newY+_mazeBounds.y0) < _mazeBounds.y0){
+                if(pMartian->posY != (relY0*TILE_SIZE)){
+                    newY = pMartian->posY - (pMartian->posY - (relY0*TILE_SIZE));
+                    validMove = true;
+                }
+                else validMove = false;
+            }
+
             else validMove = true;
             break;
 
@@ -89,8 +107,14 @@ bool checkMove(Martian *pMartian){
                 }
                 else validMove = false;
             }
-            else if((newY+MARTIAN_SIZE+MazeBounds.y0) > MazeBounds.y1)
-                validMove = false;
+            else if((newY+MARTIAN_SIZE+_mazeBounds.y0) > _mazeBounds.y1){
+                if((pMartian->posY + MARTIAN_SIZE) != relY1*TILE_SIZE){
+                    newY = pMartian->posY + (((relY1*TILE_SIZE)+TILE_SIZE) - (pMartian->posY + MARTIAN_SIZE));
+                    validMove = true;
+                }
+                else validMove = false;
+            }
+
             else validMove = true;
             break;
     }
@@ -103,7 +127,15 @@ bool checkMove(Martian *pMartian){
     return validMove;
 }
 
-void *moveMartian(void *pMartianData){
+static void stopAllThreads(){
+    for(int i=0; i<martianAmount; i++){
+        ((Martian*)_martians.array[i])->running = 0;
+        ((Martian*)_martians.array[i])->doWork = 1;
+        pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
+    }
+}
+
+static void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
     while(martian->running){
         pthread_mutex_lock(&_mutex);
@@ -117,7 +149,7 @@ void *moveMartian(void *pMartianData){
     }
 }
 
-void setup(){
+static void setup(){
     checkInit(al_init(), "Allegro");
     checkInit(al_install_keyboard(), "Keyboard");
     checkInit(al_install_mouse(), "Mouse");
@@ -138,7 +170,7 @@ void setup(){
     checkInit(_display, "Display");
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
-    // al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
+    al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
 
     al_register_event_source(_eventQueue, al_get_keyboard_event_source());
     al_register_event_source(_eventQueue, al_get_display_event_source(_display));
@@ -147,39 +179,47 @@ void setup(){
 
     _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 12, 0);
     _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
+    setCustomStyle(_NKcontext);
 
     _render = true;
     _exitLoop = false;
     martianAmount = 2;
+    _options._showHUD = 0;
+    _options._showMartians = 1;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
+    checkInit(arrayInit(&_HUDfunctions, 2, sizeof(funcPtr)), "Array HUD functions");
     pthread_mutex_init(&_mutex, NULL);
 }
 
 
-void loadAssets(){
+static void loadAssets(){
     _mazeImg = al_load_bitmap("./res/maze.png");
     checkInit(_mazeImg, "Maze image");
-    MazeBounds.x0 = (SCREEN_WIDHT/2) - (al_get_bitmap_width(_mazeImg)/2);
-    MazeBounds.y0 = SCREEN_HEIGHT - al_get_bitmap_height(_mazeImg);
-    MazeBounds.x1 = (SCREEN_WIDHT/2) + (al_get_bitmap_width(_mazeImg)/2);
-    MazeBounds.y1 = SCREEN_HEIGHT;
+    _mazeBounds.x0 = (SCREEN_WIDHT/2) - (al_get_bitmap_width(_mazeImg)/2);
+    _mazeBounds.y0 = SCREEN_HEIGHT - al_get_bitmap_height(_mazeImg);
+    _mazeBounds.x1 = (SCREEN_WIDHT/2) + (al_get_bitmap_width(_mazeImg)/2);
+    _mazeBounds.y1 = SCREEN_HEIGHT;
 
     _mazeImgTiny = al_load_bitmap("./res/mazeTiny.png");
     checkInit(_mazeImgTiny, "Maze image tiny");
 }
 
-void createMartians(){
+static void createMartians(){
     for(int i=0; i<martianAmount; i++){
         Martian *martian = newMartian(MAZE_START_X*TILE_SIZE, MAZE_START_Y*TILE_SIZE, RIGHT, 5, 10);
+        martian->id = i;
+        sprintf(martian->title, "%s %d","Martian", i);
         pthread_cond_init(&martian->cond, NULL);
         arrayInsert(&_martians, (void*)martian);
+
+        arrayInsert(&_HUDfunctions, &martianHUD);
     }
 }
 
 
-void cleanUp(){
+static void cleanUp(){
     nk_allegro5_font_del(_NKfont);
     nk_allegro5_shutdown();
     al_destroy_bitmap(_mazeImg);
@@ -189,8 +229,9 @@ void cleanUp(){
     al_destroy_timer(_timer);
     al_destroy_event_queue(_eventQueue);
 
-    arrayFree(&_martians);
-    arrayFree(&_threads);
+    arrayFree(&_martians, true);
+    arrayFree(&_threads, true);
+    arrayFree(&_HUDfunctions, false);
 }
 
 
@@ -221,28 +262,21 @@ void simLoop(){
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
-                if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
-                    for(int i=0; i<martianAmount; i++){
-                        ((Martian*)_martians.array[i])->running = 0;
-                        ((Martian*)_martians.array[i])->doWork = 1;
-                        pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
-                    }
-
+                if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
+                    stopAllThreads();
                     _exitLoop = true;
+                }
                 break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                for(int i=0; i<martianAmount; i++){
-                    ((Martian*)_martians.array[i])->running = 0;
-                    ((Martian*)_martians.array[i])->doWork = 1;
-                    pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
-                }
+                stopAllThreads();
                 _exitLoop = true;
                 break;
-        }
+        } //End event switch
 
         if(_exitLoop) break;
 
+        //Nuklear event handling
         nk_input_begin(_NKcontext);
         if (newEvent) {
             while (newEvent) {
@@ -252,47 +286,47 @@ void simLoop(){
         }
         nk_input_end(_NKcontext);
 
-        /* GUI */
-        if (nk_begin(_NKcontext, "Demo", nk_rect(MazeBounds.x1+10, MazeBounds.y0, 250, 480),
-            NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
-        {
-            enum {EASY, HARD};
-            static int op = EASY;
-            static int property = 20;
+        //Draw Nuklear UI
+        drawMenu(_NKcontext, _mazeBounds, &_options);
+        if(_options._showHUD)
+            drawMartianHUD(_NKcontext, _mazeBounds, &_martians, &_HUDfunctions);
 
-            nk_layout_row_static(_NKcontext, 30, 80, 1);
-            if (nk_button_label(_NKcontext, "button"))
-                fprintf(stdout, "button pressed\n");
-            nk_layout_row_dynamic(_NKcontext, 30, 2);
-            if (nk_option_label(_NKcontext, "easy", op == EASY)) op = EASY;
-            if (nk_option_label(_NKcontext, "hard", op == HARD)) op = HARD;
-            nk_layout_row_dynamic(_NKcontext, 22, 1);
-            nk_property_int(_NKcontext, "Compression:", 0, &property, 100, 10, 1);
-        }
-        nk_end(_NKcontext);
-
-        al_clear_to_color(al_map_rgb(255, 255, 255));
-        nk_allegro5_render();
-
-        if(_render /*&& al_is_event_queue_empty(_eventQueue)*/){
-            // al_clear_to_color(al_map_rgb(255, 255, 255));
+        //Render
+        if(_render && al_is_event_queue_empty(_eventQueue)){
+            al_clear_to_color(al_map_rgb(19, 43, 81));
             al_draw_text(_font, al_map_rgb(0, 0, 0), 0, 0, 0, message);
-            al_draw_bitmap(_mazeImg, MazeBounds.x0, MazeBounds.y0, 0);
+            al_draw_bitmap(_mazeImg, _mazeBounds.x0, _mazeBounds.y0, 0);
 
             //Draw the martians
-            for(int i=0; i<martianAmount; i++){
-                al_draw_filled_rectangle(((Martian*)_martians.array[i])->posX + MazeBounds.x0,
-                    ((Martian*)_martians.array[i])->posY + MazeBounds.y0,
-                    ((Martian*)_martians.array[i])->posX + MazeBounds.x0 + MARTIAN_SIZE,
-                    ((Martian*)_martians.array[i])->posY + MazeBounds.y0 + 16,
-                    al_map_rgb(0, 255, 0));
+            if(_options._showMartians){
+                for(int i=0; i<martianAmount; i++){
+                    Martian *martian = (Martian*)_martians.array[i];
+                    al_draw_filled_rectangle(martian->posX + _mazeBounds.x0,
+                        martian->posY + _mazeBounds.y0,
+                        martian->posX + _mazeBounds.x0 + MARTIAN_SIZE,
+                        martian->posY + _mazeBounds.y0 + MARTIAN_SIZE,
+                        al_map_rgb(0, 255, 0));
+                    char tmp[4];
+                    sprintf(tmp, "%d", i);
+                    al_draw_text(_font, al_map_rgb(0, 0, 0),
+                        martian->posX + _mazeBounds.x0,
+                        martian->posY + _mazeBounds.y0,
+                        0, tmp);
+                }
             }
 
+
+            nk_allegro5_render();
             al_flip_display();
             _render = false;
         }
 
-    }
+        else{ //Nuklear needs to be render all time
+            al_clear_to_color(al_map_rgb(19, 43, 81));
+            nk_allegro5_render();
+        }
+
+    } //End Loop
 
     //Stop all threads
     for(int i=0; i<martianAmount; i++)

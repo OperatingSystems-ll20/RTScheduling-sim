@@ -2,7 +2,7 @@
 #define _CONSTS_H
 
 #define SCREEN_WIDHT 1024
-#define SCREEN_HEIGHT 600
+#define SCREEN_HEIGHT 700
 #define MAZE_WIDTH 480
 #define MAZE_HEIGHT 480
 

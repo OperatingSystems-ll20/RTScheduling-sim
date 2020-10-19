@@ -9,24 +9,13 @@
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_IMPLEMENTATION
-#define NK_ALLEGRO5_IMPLEMENTATION
 #include <nuklear.h>
 #include <nuklear_allegro5.h>
 
 static const double REFRESH_RATE = 30.0;
-
 extern bool _render;
 extern bool _exitLoop;
-
 int martianAmount;
-
-struct {
-    int x0;
-    int y0;
-    int x1;
-    int y1;
-} MazeBounds;
 
 /** ALLEGRO **/
 ALLEGRO_DISPLAY *_display;
@@ -40,20 +29,25 @@ ALLEGRO_BITMAP *_mazeImgTiny;
 NkAllegro5Font *_NKfont;
 struct nk_context *_NKcontext;
 
+MazeBounds _mazeBounds;
 MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
+Options _options;
 
 DynamicArray _martians;
 DynamicArray _threads;
+DynamicArray _HUDfunctions;
 
 pthread_mutex_t _mutex;
 
-void checkInit(bool pTest, const char *pDescription);
-bool checkMove(Martian *pMartian);
+static void checkInit(bool pTest, const char *pDescription);
+static bool checkMove(Martian *pMartian);
+static void stopAllThreads();
+static void *moveMartian(void *pMartianData);
 
-void setup();
-void loadAssets();
-void createMartians();
-void cleanUp();
+static void setup();
+static void loadAssets();
+static void createMartians();
+static void cleanUp();
 void simLoop();
 
 

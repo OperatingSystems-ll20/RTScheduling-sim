@@ -24,9 +24,11 @@ int arrayInsert(DynamicArray *pArray, void *pElement){
     return 0;
 }
 
-void arrayFree(DynamicArray *pArray){
-    for(int i=0; i<pArray->elements; i++)
-        free(pArray->array[i]);
+void arrayFree(DynamicArray *pArray, int pFreeElements){
+    if(pFreeElements){
+        for(int i=0; i<pArray->elements; i++)
+            free(pArray->array[i]);
+    }
     free(pArray->array);
     pArray->array = NULL;
     pArray->elements = pArray->size = pArray->elementSize = 0;

@@ -6,11 +6,16 @@ LIB_COMP = "../bin/lib"
 APP_NAME  = "simulator"
 LIB_NAME = dynamicArray
 
-CFLAGS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags) -lpthread
+CC = gcc
+
+LINK_LIBS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags) \
+			-lpthread -lallegro_ttf -l$(LIB_NAME)
+
+SRC_FILES = $(APP_NAME).c UI.c objects.c
 
 buildStatic:
-		gcc -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(APP_NAME).c objects.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS) -lallegro_ttf -l$(LIB_NAME)
+		$(CC) -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(SRC_FILES) -o $(BIN_DIR)/$(APP_NAME) $(LINK_LIBS)
 
 buildDynamic:
-		gcc -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(APP_NAME).c objects.c -o $(BIN_DIR)/$(APP_NAME) $(CFLAGS) -Bdynamic $(LIB_COMP)/lib$(LIB_NAME).so
+		$(CC) -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(SRC_FILES) -o $(BIN_DIR)/$(APP_NAME) $(LINK_LIBS) -Bdynamic $(LIB_COMP)/lib$(LIB_NAME).so
 		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib

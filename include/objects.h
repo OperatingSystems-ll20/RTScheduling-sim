@@ -8,13 +8,27 @@
 enum TILE_TYPE {WALL=0, PATH};
 enum DIRECTION {LEFT = 0, RIGHT, UP, DOWN};
 
+typedef struct {
+    int _showHUD;
+    int _showMartians;
+} Options;
+
 typedef struct MazeTiles{
     int x;
     int y;
     int type;
 } MazeTile;
 
+typedef struct {
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+} MazeBounds;
+
 typedef struct Martians{
+    int id;
+    char title[15];
     int posX;
     int posY;
     int direction;
