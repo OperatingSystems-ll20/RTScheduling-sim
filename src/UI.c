@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <objects.h>
 #include <consts.h>
 #include <UI.h>
 
@@ -7,6 +6,10 @@
 #define NK_ALLEGRO5_IMPLEMENTATION
 #include <nuklear/nuklear.h>
 #include <nuklear/nuklear_allegro5.h>
+
+void initUI(Options *pOptions){
+    _mainOptions = pOptions;
+}
 
 void setCustomStyle(struct nk_context *pNKcontext){
     struct nk_color table[NK_COLOR_COUNT];
@@ -23,9 +26,12 @@ void setCustomStyle(struct nk_context *pNKcontext){
     table[NK_COLOR_SELECT] = nk_rgba(57, 67, 61, 255);
     table[NK_COLOR_SELECT_ACTIVE] = nk_rgba(48, 83, 111, 255);
     table[NK_COLOR_SLIDER] = nk_rgba(50, 58, 61, 255);
-    table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(48, 83, 111, 245);
-    table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
-    table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
+    table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(95, 155, 252, 245);
+    table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(95, 155, 252, 255);
+    table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(95, 155, 252, 255);
+    // table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(48, 83, 111, 245);
+    // table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
+    // table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
     table[NK_COLOR_PROPERTY] = nk_rgba(50, 58, 61, 255);
     table[NK_COLOR_EDIT] = nk_rgba(50, 58, 61, 225);
     table[NK_COLOR_EDIT_CURSOR] = nk_rgba(210, 210, 210, 255);
@@ -42,14 +48,15 @@ void setCustomStyle(struct nk_context *pNKcontext){
 }
 
 
-void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds, Options *pOptions){
+void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds){
     if (nk_begin(pNKcontext, "Menu", nk_rect(0, 0, SCREEN_WIDHT, pMazeBounds.y0-50),
         NK_WINDOW_BORDER))
     {
 
-        nk_layout_row_dynamic(pNKcontext, 30, 2);
-        nk_checkbox_label(pNKcontext, "HUD", &pOptions->_showHUD);
-        nk_checkbox_label(pNKcontext, "Show martians", &pOptions->_showMartians);
+        nk_layout_row_dynamic(pNKcontext, 30, 3);
+        nk_checkbox_label(pNKcontext, "HUD", &_mainOptions->_showHUD);
+        nk_checkbox_label(pNKcontext, "Show martians", &_mainOptions->_showMartians);
+        nk_checkbox_label(pNKcontext, "Show martians position", &_mainOptions->_showMartianPos);
 
     }
     nk_end(pNKcontext);
@@ -58,10 +65,26 @@ void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds, Options *pO
 
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     int MYtitlebar = nk_true;
-    if (nk_tree_push_id(pNKcontext, NK_TREE_TAB, pMartian->title, NK_MINIMIZED, pMartian->id)) {
+    float ratio1[] = {0.3f, 0.7f};
+    struct nk_color workingColor = {0, 255, 0, 255};
+    if (nk_tree_push_id(pNKcontext, NK_TREE_TAB, pMartian->title, NK_MAXIMIZED, pMartian->id)) {
+        if(_mainOptions->_showMartianPos){
+            nk_layout_row_dynamic(pNKcontext, 30, 2);
+            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %zu" , pMartian->posX);
+            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %zu" , pMartian->posY);
+        }
         nk_layout_row_dynamic(pNKcontext, 30, 2);
-        nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %zu" , pMartian->posX);
-        nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %zu" , pMartian->posY);
+        nk_label(pNKcontext, "Moving:", NK_TEXT_LEFT);
+        if(!pMartian->doWork) {
+            workingColor.r = (nk_byte)255;
+            workingColor.g = (nk_byte)0;
+        }
+        nk_button_color(pNKcontext, workingColor);
+
+        nk_layout_row(pNKcontext, NK_DYNAMIC, 30, 2, ratio1);
+        nk_labelf(pNKcontext, NK_TEXT_LEFT, "Energy: %zu" , pMartian->currentEnergy);
+        nk_progress(pNKcontext, &pMartian->currentEnergy, pMartian->maxEnergy, NK_FIXED);
+
         nk_tree_pop(pNKcontext);
     }
 }

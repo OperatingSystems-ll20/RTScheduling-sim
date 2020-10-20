@@ -11,6 +11,7 @@ enum DIRECTION {LEFT = 0, RIGHT, UP, DOWN};
 typedef struct {
     int _showHUD;
     int _showMartians;
+    int _showMartianPos;
 } Options;
 
 typedef struct MazeTiles{
@@ -32,16 +33,16 @@ typedef struct Martians{
     int posX;
     int posY;
     int direction;
-    int energy;
+    int maxEnergy;
+    size_t currentEnergy;
     int period;
     int running;
     int doWork;
-    //pthread_mutex_t mutex;
     pthread_cond_t cond;
 } Martian;
 
 void loadMazeTiles(MazeTile pMazeTiles[MAZE_WIDTH][MAZE_HEIGHT], ALLEGRO_BITMAP* pMazeImg);
-Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pEnergy, int pPeriod);
+Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, int pPeriod);
 
 
 

@@ -24,12 +24,12 @@ void loadMazeTiles(MazeTile pMazeTiles[MAZE_WIDTH][MAZE_HEIGHT], ALLEGRO_BITMAP*
 }
 
 
-Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pEnergy, int pPeriod){
+Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, int pPeriod){
     Martian *martian = malloc(sizeof(Martian));
     martian->posX = pPosX;
     martian->posY = pPosY;
     martian->direction = pInitalDirection;
-    martian->energy = pEnergy;
+    martian->maxEnergy = pMaxEnergy;
     martian->period = pPeriod;
     martian->running = 1;
     martian->doWork = 0;

@@ -16,6 +16,7 @@ static const double REFRESH_RATE = 30.0;
 extern bool _render;
 extern bool _exitLoop;
 int martianAmount;
+unsigned int _secTimer;
 
 /** ALLEGRO **/
 ALLEGRO_DISPLAY *_display;

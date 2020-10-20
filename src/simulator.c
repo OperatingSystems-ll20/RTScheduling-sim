@@ -220,12 +220,20 @@ static bool checkMove(Martian *pMartian){
 
 static void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
+    int counter = 0;
     while(martian->running){
         pthread_mutex_lock(&_mutex);
         while(!martian->doWork) pthread_cond_wait(&martian->cond, &_mutex);
 
+        if(counter == REFRESH_RATE) {
+            martian->currentEnergy--;
+            counter = 0;
+        }
+        if(martian->currentEnergy <= 0) martian->currentEnergy = martian->maxEnergy;
         if(!checkMove(martian))
             martian->direction = (rand() % (3 - 0 + 1)) + 0;
+
+        counter++;
 
         martian->doWork = 0;
         pthread_mutex_unlock(&_mutex);
@@ -262,13 +270,18 @@ static void setup(){
 
     _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 12, 0);
     _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
+    initUI(&_options);
     setCustomStyle(_NKcontext);
 
     _render = true;
     _exitLoop = false;
     martianAmount = 2;
-    _options._showHUD = 0;
+    _secTimer = 0;
+    _options._showHUD = 1;
     _options._showMartians = 1;
+    _options._showMartianPos = 0;
+
+
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
@@ -336,6 +349,7 @@ void simLoop(){
     ALLEGRO_EVENT event;
     bool newEvent;
     al_start_timer(_timer);
+    int frameCounter = 0;
     char *message = "NO COLLISION";
 
     //Allocate and start the threads
@@ -356,8 +370,10 @@ void simLoop(){
                     ((Martian*)_martians.array[i])->doWork = 1;
                     pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
                 }
-
-
+                if(frameCounter == 30){// 1 second
+                    _secTimer++;
+                    frameCounter = 0;
+                }
                 _render = true;
                 break;
 
@@ -387,7 +403,7 @@ void simLoop(){
         nk_input_end(_NKcontext);
 
         //Draw Nuklear UI
-        drawMenu(_NKcontext, _mazeBounds, &_options);
+        drawMenu(_NKcontext, _mazeBounds);
         if(_options._showHUD)
             drawMartianHUD(_NKcontext, _mazeBounds, &_martians, &_HUDfunctions);
 
