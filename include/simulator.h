@@ -15,7 +15,7 @@
 static const double REFRESH_RATE = 30.0;
 extern bool _render;
 extern bool _exitLoop;
-int _prevMartian, _currentMartian;
+
 int martianAmount;
 unsigned int _secTimer;
 

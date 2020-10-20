@@ -29,6 +29,7 @@ Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, 
     martian->posX = pPosX;
     martian->posY = pPosY;
     martian->direction = pInitalDirection;
+    martian->currentEnergy = 0;
     martian->maxEnergy = pMaxEnergy;
     martian->period = pPeriod;
     martian->ready = 1;
