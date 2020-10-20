@@ -36,6 +36,7 @@ typedef struct Martians{
     int maxEnergy;
     size_t currentEnergy;
     int period;
+    int ready;
     int running;
     int doWork;
     pthread_cond_t cond;
