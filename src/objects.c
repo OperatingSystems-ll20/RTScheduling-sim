@@ -35,5 +35,6 @@ Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, 
     martian->ready = 1;
     martian->running = 1;
     martian->doWork = 0;
+    martian->update = 0;
     return martian;
 }

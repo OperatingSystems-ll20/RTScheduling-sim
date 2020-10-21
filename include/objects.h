@@ -40,6 +40,7 @@ typedef struct Martians{
     int running;
     int doWork;
     int counter;
+    int update;
     pthread_cond_t cond;
 } Martian;
 
