@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
@@ -220,38 +221,47 @@ static bool checkMove(Martian *pMartian){
 
 static void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
-    int counter = 0;
+    martian->counter = 0;
     int prevResult = 0;
     int result = 0;
+    int start = 0;
+    int prevSecTimer = _secTimer;
     while(martian->running){
-        // pthread_mutex_lock(&_mutex);
-        // while(!martian->doWork) pthread_cond_wait(&martian->cond, &_mutex);
         pthread_mutex_lock(&_mutex);
+        pthread_cond_wait(&martian->cond, &_mutex);
         if(martian->doWork && martian->currentEnergy != 0){
-            martian->doWork = 0;
             martian->ready = 0;
-            // if(martian->currentEnergy != 0){
-                if(counter == REFRESH_RATE) {
-                    martian->currentEnergy--;
-                    counter = 0;
-                }
-            // }
+            if(martian->currentEnergy == martian->maxEnergy && martian->counter == 0)
+                printf("Start of %s at sec=%d\n", martian->title, _secTimer);
 
-            // if(martian->currentEnergy < 0) martian->currentEnergy = martian->maxEnergy;
             if(!checkMove(martian))
                 martian->direction = (rand() % (3 - 0 + 1)) + 0;
 
-            counter++;
-            if(martian->id == 1) printf("Martian 1 doing work!!!!\n");
+            if(martian->counter == REFRESH_RATE) {
+                martian->currentEnergy--;
+                if(martian->currentEnergy == 0) printf("------ %s finished at sec=%d\n", martian->title, _secTimer);
+                martian->counter = 0;
+            }
+
+            martian->doWork = 0;
+            martian->counter++;
+            // if(martian->currentEnergy == 0) martian->counter = 0;//Reset counter
+            // printf("Executing %s \t energy=%d \t counter=%d \t sec=%d\n", martian->title, martian->currentEnergy, martian->counter, _secTimer);
+        }
+
+        if(prevSecTimer != _secTimer) {
+            if((result = _secTimer%martian->period) == 0){
+                if(result != prevResult){
+                    martian->ready = 1;
+                    martian->counter = 0;
+                    // printf("Timer of %s at sec=%d\n", martian->title, _secTimer);
+                }
+            }
+            prevSecTimer = _secTimer;
+            prevResult = result;
         }
         pthread_mutex_unlock(&_mutex);
-        if((result = _secTimer%martian->period) == 0){
-            if(result != prevResult){
-                martian->ready = 1;
-                // printf("Timer of martian %d\n", martian->id);
-            }
-        }
-        prevResult = result;
+        // usleep(10); //Limit thread execution
     }
 }
 
@@ -290,7 +300,7 @@ static void setup(){
 
     _render = true;
     _exitLoop = false;
-    martianAmount = 2;
+    martianAmount = 3;
     _secTimer = 0;
     _options._showHUD = 1;
     _options._showMartians = 1;
@@ -323,8 +333,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {1, 2}; //TEST
-    int per[] = {6, 9};  //TEST
+    int ener[] = {1, 2, 6}; //TEST
+    int per[] = {6, 9, 18};  //TEST
     for(int i=0; i<martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -362,26 +372,90 @@ static void cleanUp(){
     arrayFree(&_HUDfunctions, false);
 }
 
-static int nextShortestPeriod(int pIndexToIgnore){
-    int result = 0;
-    int found = 0;
+static int nextShortestPeriodIgnore(int pIndexToIgnore){
+    int candidate = -1;
+    int first = 1;
     for(int i=0; i<martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
-        if(i == pIndexToIgnore && i == martianAmount-1)
-            continue;
-        else if(i == pIndexToIgnore){
-            result++;
+        if(i == pIndexToIgnore) continue;
+
+        else{
+            if(first){
+                if(((martian->ready && martian->currentEnergy == 0) ||
+                    (!martian->ready && martian->currentEnergy != 0))) {
+                    candidate = i;
+                    first = 0;
+                }
+            }
+            else{
+                if(((martian->ready && martian->currentEnergy == 0) ||
+                    (!martian->ready && martian->currentEnergy != 0))) {
+                    if(martian->period < ((Martian*)_martians.array[candidate])->period)
+                        candidate = i;
+                }
+            }
+        }
+    }
+    return candidate;
+}
+
+static int checkSchedulingError(){
+    int result = 0;
+    for(int i=0; i<martianAmount; i++){
+        Martian *martian = (Martian*)_martians.array[i];
+        if(martian->ready && martian->currentEnergy != 0){
+            result = 1;
+            break;
+        }
+    }
+    return result;
+}
+
+static int checkMartianState(int pIndex){
+    Martian *martian = (Martian*)_martians.array[pIndex];
+    if(martian->ready && martian->currentEnergy == 0)
+        return 0; //Martian is ready
+    else if(!martian->ready && martian->currentEnergy != 0)
+        return 1; //Martian is executing
+    else if(!martian->ready && martian->currentEnergy == 0)
+        return 2; //Martian is idle
+}
+
+static int getShortestPeriod(){
+    int candidate = -1;
+    for(int i=0; i<martianAmount; i++){
+        Martian *martian = (Martian*)_martians.array[i];
+        if((!martian->ready && martian->currentEnergy == 0)){
             continue;
         }
 
-        if(martian->ready && martian->period <= ((Martian*)_martians.array[result])->period) {
-            found = 1;
-            result = i;
-            // printf("Next shortest at index = %d\n", result);
+        else if(candidate < 0){
+            if(((martian->ready && martian->currentEnergy == 0) ||
+                (!martian->ready && martian->currentEnergy != 0))){
+                candidate = i;
+            }
+        }
+
+        else{
+            if(((martian->ready && martian->currentEnergy == 0) ||
+                (!martian->ready && martian->currentEnergy != 0))) {
+                if(martian->period < ((Martian*)_martians.array[candidate])->period)
+                    candidate = i;
+            }
         }
     }
-    if(found) return result;
-    else return -1;
+    return candidate;
+}
+
+static int checkNotDone(){
+    int result = 0;
+    for(int i=0; i<martianAmount; i++){
+        if(((Martian*)_martians.array[i])->doWork == 1){
+            result = 1;
+            break;
+        }
+    }
+    return result;
 }
 
 
@@ -393,8 +467,6 @@ void simLoop(){
     int stopped = 0;
     char *message = "NO COLLISION";
 
-
-
     //Allocate and start the threads
     for(int i=0; i<martianAmount; i++){
         pthread_t *pthread = malloc(sizeof(pthread_t));
@@ -405,15 +477,17 @@ void simLoop(){
     printf("After start threads\n");
     for(int i=0; i<martianAmount; i++){
         Martian *martian = ((Martian*)_martians.array[i]);
-        printf("%s -> Do work=%d, Ready=%d, Energy=%d, Period=%d\n", martian->title,
-        martian->doWork, martian->ready, martian->currentEnergy, martian->period);
+        printf("%s -> Do work=%d, Ready=%d, Energy=%d, Period=%d maxEnergy=%d\n", martian->title,
+        martian->doWork, martian->ready, martian->currentEnergy, martian->period, martian->maxEnergy);
     }
-    int initial = 1;
+    // int initial = 1;
     int martianExecuting = 0;
-    int nextMartian = 0;
-    int tmp = 0;
-    bool tmpFlag = 0;
+    int prevMartian = 0;
+    int nextMartianIdx = 0;
     int scheduleError = 0;
+    int currentState = 0;
+    int wait = 0;
+    int executeSchedule = 1;
     al_start_timer(_timer);
     while(1){
         ALLEGRO_TIMEOUT timeout;
@@ -422,113 +496,75 @@ void simLoop(){
         // al_wait_for_event(_eventQueue, &event);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
-                pthread_mutex_lock(&_mutex);
-                if(initial){ //Select shortest period initialy
-                    int idx =0;
-                    for(int i=0; i<martianAmount; i++){
-                        Martian *martian = (Martian*)_martians.array[i];
-                        if(martian->period < ((Martian*)_martians.array[idx])->period)
-                            idx = i;
-                    }
-                    martianExecuting = idx;
-                    initial = 0;
-                }
-
-                // else{
-                //     Martian *current = (Martian*)_martians.array[martianExecuting];
-                //     nextMartian = 0;
-                //     tmp = 0;
-                //     for(int i=0; i<martianAmount; i++){//Check if there are new martians available
-                //         Martian *martian = (Martian*)_martians.array[i];
-                //         Martian *next = (Martian*)_martians.array[nextMartian];
-                //         Martian *tmpMartian = (Martian*)_martians.array[tmp];
-                //         // if(martian->id != current->id){
-                //             if(martian->ready){
-                //                 if(martian->currentEnergy == 0){//New martian ready without errors
-                //                     if(current->ready == 0){//Current martian could be executing or waiting regeneration
-                //                         if(current->currentEnergy != 0){//Current martian is executing
-                //                             if(martian->period < current->period){//New martian is ready with lower period - EXECUTE IT
-                //                                 nextMartian = i;
-                //                             }
-                //                             else nextMartian = martianExecuting; //nextMartian keeps the same
-                //                         }
-                //                         else {
-                //                             //Current martian is waiting regeneration - Choose next lower period
-                //                             if(martian->period < tmpMartian->period){ //SET FLAG??????
-                //                                 nextMartian = i;
-                //                             }
-                //                         }
-                //                     }
-                //                     else{
-                //                         if(current->currentEnergy == 0){//Current martian ready for new execution
-                //                             if(martian->period < current->period){//New martian with lower period is also ready - EXECUTE IT
-                //                                 nextMartian = i;
-                //                             }
-                //                             else nextMartian = martianExecuting; //nextMartian keeps the same
-                //                         }
-                //                         else{//Error - current martian is ready but hasn't finished its previous execution
-                //                             scheduleError = 1;
-                //                             break;
-                //                         }
-                //                     }
-                //                 }
-                //                 else{//Error - A martian is ready but hasn't finished its previous execution
-                //                     scheduleError = 1;
-                //                     break;
-                //                 }
-                //             }
-                //             else{//New martian not ready - Could be executing or waiting for regeneration
-                //                 if(martian->currentEnergy != 0){//New martian is in execution
-                //                     if(current->ready == 0){
-                //                         if(current->currentEnergy != 0){//Current martian is in execution
-                //                             if(martian->period < current->period){//New martian need to continue its execution
-                //                                 nextMartian = i;
-                //                             }
-                //                             else {//next martian keeps the same ////////////////////////RESET FLAG???
-                //                                 nextMartian = martianExecuting;
-                //                                 tmpFlag = false;
-                //                             }
-                //                         }
-                //                         else{
-                //                             //Current martian is waiting regeneration - Chose next lower period
-                //                             if(martian->period < next->period){
-                //                                 nextMartian = i;
-                //                             }
-                //                         }
-                //                     }
-                //                     else{
-                //                         if(current->currentEnergy == 0){//Current martian is ready for new execution
-                //                             if(martian->period < current->period){//New period has lower period - CONTINUE ITS EXECUTION
-                //                                 nextMartian = i;
-                //                             }
-                //                             else nextMartian = martianExecuting; //nextMartian keeps the same
-                //                         }
-                //                         else{//Error - current martian is ready but hasn't finished its previous execution
-                //                             scheduleError = 1;
-                //                             break;
-                //                         }
-                //                     }
-                //                 }
-                //                 else{//New martian is waiting for regeneration - Ignore it
-                //                     if(i < martianAmount-1) {//SET FLAG????
-                //                         tmp++;
-                //                         tmpFlag = true;
-                //                     }
-                //                     else nextMartian = tmp;
-                //                 }
-                //             }
-                //         // }
-                //     }
-                // }
 
                 if(frameCounter == REFRESH_RATE){// 1 second
                     _secTimer++;
-                    printf("Second %d\n", _secTimer);
+                    // printf("Second %d\n", _secTimer);
                     frameCounter = 0;
+                }
+
+                for(int i=0; i<martianAmount; i++){
+                    pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
+                    // printf("Martian %d signaled\n", ((Martian*)_martians.array[i])->id);
+                }
+
+                pthread_mutex_lock(&_mutex);
+                if(!scheduleError){
+                    scheduleError = checkSchedulingError();
+                    if(scheduleError){
+                        executeSchedule = 0;
+                        stopAllThreads();
+                        printf("Scheduling error!!!\n");
+                    }
+                }
+                pthread_mutex_unlock(&_mutex);
+                if(executeSchedule){
+                    pthread_mutex_lock(&_mutex);
+                    currentState = checkMartianState(nextMartianIdx);
+                    // printf("Martian %s ready=%d energy=%d\n", ((Martian*)_martians.array[nextMartianIdx])->title,
+                    // ((Martian*)_martians.array[nextMartianIdx])->ready, ((Martian*)_martians.array[nextMartianIdx])->currentEnergy);
+                    switch(currentState){
+                        case 0: //Ready
+                        case 1: //Executing
+                            wait = 0;
+                            nextMartianIdx = getShortestPeriod();
+                            currentState = checkMartianState(nextMartianIdx);
+                            break;
+
+                        case 2: //Idle
+                            wait = 0;
+                            int test = nextShortestPeriodIgnore(nextMartianIdx);
+                            if(test < 0) {
+                                wait = 1;
+                                break;
+                            }
+                            nextMartianIdx = test;
+                            currentState = checkMartianState(nextMartianIdx);
+                            break;
+                    }
+                    if(nextMartianIdx != prevMartian) frameCounter--; //Skip tick on each change
+                    prevMartian = nextMartianIdx;
+                    pthread_mutex_unlock(&_mutex);
+                    if(!wait){
+                        currentState = checkMartianState(nextMartianIdx);
+                        nextMartian = ((Martian*)_martians.array[nextMartianIdx]);
+                        switch(currentState){
+                            case 0: //Ready
+                                nextMartian->currentEnergy = nextMartian->maxEnergy;
+                                nextMartian->doWork = 1;
+                                pthread_cond_signal(&nextMartian->cond);
+                                // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
+                                break;
+                            case 1: //Executing
+                                nextMartian->doWork = 1;
+                                pthread_cond_signal(&nextMartian->cond);
+                                // printf("Continue executing %s with energy=%d at second %d\n", nextMartian->title, nextMartian->currentEnergy, _secTimer);
+                                break;
+                        }
+                    }
                 }
                 frameCounter++;
                 _render = true;
-                printf("#######################################\n");
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:

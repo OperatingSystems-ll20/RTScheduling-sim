@@ -19,6 +19,7 @@ extern bool _exitLoop;
 int martianAmount;
 unsigned int _secTimer;
 
+
 /** ALLEGRO **/
 ALLEGRO_DISPLAY *_display;
 ALLEGRO_TIMER *_timer;

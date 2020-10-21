@@ -39,6 +39,7 @@ typedef struct Martians{
     int ready;
     int running;
     int doWork;
+    int counter;
     pthread_cond_t cond;
 } Martian;
 
