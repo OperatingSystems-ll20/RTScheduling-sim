@@ -18,6 +18,11 @@ int rm_nextShortestPeriodIgnore(const int pIndexToIgnore);
 int rm_checkMartianState(const int pIndex);
 void rm_shchedule(int *pCurrentState, int *pNextMartianIdx, int *pWait);
 
+int edf_checkSchedulingError();
+int edf_getShortestExecution(int pSecTimer);
+int edf_nextShortestExecutionIgnore(const int pIndexToIgnore, int pSecTimer);
+void edf_schedule(int *pCurrentState, int *pNextMartianIdx, int *pWait, int pSecTimer);
+
 int checkSchedulingError(const int pAlgorithm);
 
 

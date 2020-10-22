@@ -43,6 +43,8 @@ typedef struct Martians{
     int doWork;
     int counter;
     int update;
+    int executed; //EDF
+    int periodCounter; //EDF
     pthread_cond_t cond;
 } Martian;
 
