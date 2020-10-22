@@ -325,6 +325,7 @@ static void setup(){
     _options._showHUD = 1;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
+    _options._errorPopUp = 0;
 
 
 
@@ -518,12 +519,15 @@ void simLoop(){
             case ALLEGRO_EVENT_TIMER:
                 // printf("FRAME COUNTER=%d\n", frameCounter);
 
-                if(frameCounter == REFRESH_RATE-1){// 1 second
-                    _secTimer++;
-                    // printf("Second %d\n", _secTimer);
-                    frameCounter = 0;
+                if(!scheduleError){
+                    if(frameCounter == REFRESH_RATE-1){// 1 second
+                        _secTimer++;
+                        // printf("Second %d\n", _secTimer);
+                        frameCounter = 0;
+                    }
+                    else frameCounter++;
                 }
-                else frameCounter++;
+
 
 
                 if(!scheduleError){
@@ -532,6 +536,7 @@ void simLoop(){
                     pthread_mutex_unlock(&_mutex);
                     if(scheduleError){
                         executeSchedule = 0;
+                        _options._errorPopUp = 1;
                         stopAllThreads();
                         printf("Scheduling error!!!\n");
                     }
@@ -624,6 +629,8 @@ void simLoop(){
         drawMenu(_NKcontext, _mazeBounds);
         if(_options._showHUD)
             drawMartianHUD(_NKcontext, _mazeBounds, &_martians, &_HUDfunctions);
+        if(_options._errorPopUp)
+            errorPopUp(_NKcontext, _secTimer);
 
         //Render
         if(_render && al_is_event_queue_empty(_eventQueue)){

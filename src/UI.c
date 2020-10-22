@@ -58,6 +58,26 @@ void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds){
     nk_end(pNKcontext);
 }
 
+void errorPopUp(struct nk_context *pNKcontext, const int pSecTimer){
+    if(_options._errorPopUp) {
+        if (nk_begin(pNKcontext, "", nk_rect(0, 0, 0, 0), NK_WINDOW_BORDER)) {
+            static struct nk_rect s = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
+            if (nk_popup_begin(pNKcontext, NK_POPUP_STATIC, "Error", 0, s)) {
+                nk_layout_row_dynamic(pNKcontext, 25, 1);
+                nk_labelf(pNKcontext, NK_TEXT_LEFT, "Scheduling error at %d s" , pSecTimer);
+                nk_layout_row_static(pNKcontext, 25, 40, 1);
+                if (nk_button_label(pNKcontext, "OK")) {
+                    _options._errorPopUp = 0;
+                    nk_popup_close(pNKcontext);
+                }
+                nk_popup_end(pNKcontext);
+            }
+            else _options._errorPopUp = 0;
+        }
+        nk_end(pNKcontext);
+    }
+}
+
 
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     int MYtitlebar = nk_true;

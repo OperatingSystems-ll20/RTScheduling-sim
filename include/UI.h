@@ -18,6 +18,7 @@ extern Options _options;
 void setCustomStyle(struct nk_context *pNKcontext);
 
 void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds);
+void errorPopUp(struct nk_context *pNKcontext, const int pSecTimer);
 
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian);
 void drawMartianHUD(struct nk_context *pNKcontext, MazeBounds pMazeBounds, DynamicArray *pMartians, DynamicArray *pHUDfunctions);
