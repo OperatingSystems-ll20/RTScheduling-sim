@@ -18,6 +18,7 @@ bool _exitLoop;
 
 int martianAmount;
 unsigned int _secTimer;
+unsigned int _ticks;
 
 
 /** ALLEGRO **/
