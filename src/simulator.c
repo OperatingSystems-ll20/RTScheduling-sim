@@ -11,9 +11,6 @@
 #include <UI.h>
 #include <simulator.h>
 
-bool _render;
-bool _exitLoop;
-
 static void checkInit(bool pTest, const char *pDescription){
     if(pTest) return;
     printf("Error: Couldn't initialize %s\n", pDescription);

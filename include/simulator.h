@@ -13,8 +13,8 @@
 #include <nuklear/nuklear_allegro5.h>
 
 static const double REFRESH_RATE = 30.0;
-extern bool _render;
-extern bool _exitLoop;
+bool _render;
+bool _exitLoop;
 
 int martianAmount;
 unsigned int _secTimer;
