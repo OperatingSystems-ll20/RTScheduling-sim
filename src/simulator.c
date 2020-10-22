@@ -333,7 +333,7 @@ static void setup(){
 
     _render = true;
     _exitLoop = false;
-    martianAmount = 3;
+    martianAmount = 2;
     _secTimer = 0;
     _ticks = 0;
     _options._showHUD = 1;
@@ -366,8 +366,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {1,2,6}; //TEST
-    int per[] = {6,9,18};  //TEST
+    int ener[] = {3,4}; //TEST
+    int per[] = {6,9};  //TEST
     for(int i=0; i<martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -498,7 +498,6 @@ void simLoop(){
                             case 0: //Ready
                                 nextMartian->currentEnergy = nextMartian->maxEnergy;
                                 nextMartian->doWork = 1;
-                                // printf("Going to execute!!!!\n");
                                 // pthread_cond_signal(&nextMartian->cond);
                                 // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
                                 break;
