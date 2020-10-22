@@ -9,6 +9,7 @@
 #include <consts.h>
 #include <objects.h>
 #include <UI.h>
+#include <schedule.h>
 #include <simulator.h>
 
 static void checkInit(bool pTest, const char *pDescription){
@@ -326,15 +327,13 @@ static void setup(){
     _options._showMartians = 1;
     _options._showMartianPos = 0;
     _options._errorPopUp = 0;
-
-
+    _options._schedulingAlgorithm = RM;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
     checkInit(arrayInit(&_HUDfunctions, 2, sizeof(funcPtr)), "Array HUD functions");
     pthread_mutex_init(&_mutex, NULL);
 }
-
 
 static void loadAssets(){
     _mazeImg = al_load_bitmap("./res/maze.png");
@@ -354,8 +353,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {1,2,2}; //TEST
-    int per[] = {4,5,7};  //TEST
+    int ener[] = {1,2,6}; //TEST
+    int per[] = {6,9,18};  //TEST
     for(int i=0; i<martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -377,7 +376,6 @@ static void createMartians(){
     }
 }
 
-
 static void cleanUp(){
     nk_allegro5_font_del(_NKfont);
     nk_allegro5_shutdown();
@@ -391,92 +389,6 @@ static void cleanUp(){
     arrayFree(&_martians, true);
     arrayFree(&_threads, true);
     arrayFree(&_HUDfunctions, false);
-}
-
-static int nextShortestPeriodIgnore(int pIndexToIgnore){
-    int candidate = -1;
-    int first = 1;
-    for(int i=0; i<martianAmount; i++){
-        Martian *martian = (Martian*)_martians.array[i];
-        if(i == pIndexToIgnore) continue;
-
-        else{
-            if(first){
-                if(((martian->ready && martian->currentEnergy == 0) ||
-                    (!martian->ready && martian->currentEnergy != 0))) {
-                    candidate = i;
-                    first = 0;
-                }
-            }
-            else{
-                if(((martian->ready && martian->currentEnergy == 0) ||
-                    (!martian->ready && martian->currentEnergy != 0))) {
-                    if(martian->period < ((Martian*)_martians.array[candidate])->period)
-                        candidate = i;
-                }
-            }
-        }
-    }
-    return candidate;
-}
-
-static int checkSchedulingError(){
-    int result = 0;
-    for(int i=0; i<martianAmount; i++){
-        Martian *martian = (Martian*)_martians.array[i];
-        if(martian->ready && martian->currentEnergy != 0){
-            result = 1;
-            break;
-        }
-    }
-    return result;
-}
-
-static int checkMartianState(int pIndex){
-    Martian *martian = (Martian*)_martians.array[pIndex];
-    if(martian->ready && martian->currentEnergy == 0)
-        return 0; //Martian is ready
-    else if(!martian->ready && martian->currentEnergy != 0)
-        return 1; //Martian is executing
-    else if(!martian->ready && martian->currentEnergy == 0)
-        return 2; //Martian is idle
-}
-
-static int getShortestPeriod(){
-    int candidate = -1;
-    for(int i=0; i<martianAmount; i++){
-        Martian *martian = (Martian*)_martians.array[i];
-        if((!martian->ready && martian->currentEnergy == 0)){
-            continue;
-        }
-
-        else if(candidate < 0){
-            if(((martian->ready && martian->currentEnergy == 0) ||
-                (!martian->ready && martian->currentEnergy != 0))){
-                candidate = i;
-            }
-        }
-
-        else{
-            if(((martian->ready && martian->currentEnergy == 0) ||
-                (!martian->ready && martian->currentEnergy != 0))) {
-                if(martian->period < ((Martian*)_martians.array[candidate])->period)
-                    candidate = i;
-            }
-        }
-    }
-    return candidate;
-}
-
-static int checkNotDone(){
-    int result = 0;
-    for(int i=0; i<martianAmount; i++){
-        if(((Martian*)_martians.array[i])->doWork == 1){
-            result = 1;
-            break;
-        }
-    }
-    return result;
 }
 
 
@@ -501,9 +413,7 @@ void simLoop(){
         printf("%s -> Do work=%d, Ready=%d, Energy=%d, Period=%d maxEnergy=%d\n", martian->title,
         martian->doWork, martian->ready, martian->currentEnergy, martian->period, martian->maxEnergy);
     }
-    // int initial = 1;
-    int martianExecuting = 0;
-    int prevMartian = 0;
+
     int nextMartianIdx = 0;
     int scheduleError = 0;
     int currentState = 0;
@@ -518,7 +428,6 @@ void simLoop(){
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
                 // printf("FRAME COUNTER=%d\n", frameCounter);
-
                 if(!scheduleError){
                     if(frameCounter == REFRESH_RATE-1){// 1 second
                         _secTimer++;
@@ -528,11 +437,9 @@ void simLoop(){
                     else frameCounter++;
                 }
 
-
-
                 if(!scheduleError){
                     pthread_mutex_lock(&_mutex);
-                    scheduleError = checkSchedulingError();
+                    scheduleError = checkSchedulingError(_options._schedulingAlgorithm);
                     pthread_mutex_unlock(&_mutex);
                     if(scheduleError){
                         executeSchedule = 0;
@@ -544,36 +451,18 @@ void simLoop(){
 
                 if(executeSchedule){
                     pthread_mutex_lock(&_mutex);
-                    currentState = checkMartianState(nextMartianIdx);
-                    // printf("Martian %s ready=%d energy=%d\n", ((Martian*)_martians.array[nextMartianIdx])->title,
-                    // ((Martian*)_martians.array[nextMartianIdx])->ready, ((Martian*)_martians.array[nextMartianIdx])->currentEnergy);
-                    switch(currentState){
-                        case 0: //Ready
-                        case 1: //Executing
-                            wait = 0;
-                            nextMartianIdx = getShortestPeriod();
-                            currentState = checkMartianState(nextMartianIdx);
+                    switch(_options._schedulingAlgorithm){
+                        case RM:
+                            rm_shchedule(&currentState, &nextMartianIdx, &wait);
                             break;
-
-                        case 2: //Idle
-                            wait = 0;
-                            int test = nextShortestPeriodIgnore(nextMartianIdx);
-                            if(test < 0) {
-                                wait = 1;
-                                break;
-                            }
-                            nextMartianIdx = test;
-                            currentState = checkMartianState(nextMartianIdx);
+                        case EDF:
+                            printf("To implement!!!!!");
                             break;
                     }
-                    // if(nextMartianIdx != prevMartian) {
-                    //     frameCounter--; //Skip tick on each change
-                    //     // printf("Substract to frameCounter!!! -----> frameCounter=%d\n", frameCounter);
-                    // }
-                    prevMartian = nextMartianIdx;
+
                     pthread_mutex_unlock(&_mutex);
+
                     if(!wait){
-                        currentState = checkMartianState(nextMartianIdx);
                         nextMartian = ((Martian*)_martians.array[nextMartianIdx]);
                         switch(currentState){
                             case 0: //Ready
@@ -591,12 +480,11 @@ void simLoop(){
                     }
                 }
 
+                //Signal all threads to update their time counter
                 for(int i=0; i<martianAmount; i++){
                     ((Martian*)_martians.array[i])->update = 1;
                     pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
-                    // printf("Martian %d signaled\n", ((Martian*)_martians.array[i])->id);
                 }
-                // frameCounter++;
                 _render = true;
                 break;
 
@@ -655,7 +543,6 @@ void simLoop(){
                         0, tmp);
                 }
             }
-
 
             nk_allegro5_render();
             al_flip_display();

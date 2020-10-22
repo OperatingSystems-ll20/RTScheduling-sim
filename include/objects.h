@@ -13,6 +13,7 @@ typedef struct {
     int _showMartians;
     int _showMartianPos;
     int _errorPopUp;
+    int _schedulingAlgorithm;
 } Options;
 
 typedef struct MazeTiles{
