@@ -7,10 +7,6 @@
 #include <nuklear/nuklear.h>
 #include <nuklear/nuklear_allegro5.h>
 
-void initUI(Options *pOptions){
-    _mainOptions = pOptions;
-}
-
 void setCustomStyle(struct nk_context *pNKcontext){
     struct nk_color table[NK_COLOR_COUNT];
     table[NK_COLOR_TEXT] = nk_rgba(210, 210, 210, 255);
@@ -54,9 +50,9 @@ void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds){
     {
 
         nk_layout_row_dynamic(pNKcontext, 30, 3);
-        nk_checkbox_label(pNKcontext, "HUD", &_mainOptions->_showHUD);
-        nk_checkbox_label(pNKcontext, "Show martians", &_mainOptions->_showMartians);
-        nk_checkbox_label(pNKcontext, "Show martians position", &_mainOptions->_showMartianPos);
+        nk_checkbox_label(pNKcontext, "HUD", &_options._showHUD);
+        nk_checkbox_label(pNKcontext, "Show martians", &_options._showMartians);
+        nk_checkbox_label(pNKcontext, "Show martians position", &_options._showMartianPos);
 
     }
     nk_end(pNKcontext);
@@ -68,7 +64,7 @@ void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     float ratio1[] = {0.3f, 0.7f};
     struct nk_color workingColor = {0, 255, 0, 255};
     if (nk_tree_push_id(pNKcontext, NK_TREE_TAB, pMartian->title, NK_MAXIMIZED, pMartian->id)) {
-        if(_mainOptions->_showMartianPos){
+        if(_options._showMartianPos){
             nk_layout_row_dynamic(pNKcontext, 30, 2);
             nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %zu" , pMartian->posX);
             nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %zu" , pMartian->posY);

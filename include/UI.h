@@ -13,9 +13,8 @@
 
 typedef void (*funcPtr)(struct nk_context *pNKcontext, Martian *pMartian);
 
-Options *_mainOptions;
+extern Options _options;
 
-void initUI(Options *pOptions);
 void setCustomStyle(struct nk_context *pNKcontext);
 
 void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds);

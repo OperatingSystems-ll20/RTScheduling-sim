@@ -316,7 +316,6 @@ static void setup(){
 
     _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 12, 0);
     _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
-    initUI(&_options);
     setCustomStyle(_NKcontext);
 
     _render = true;
