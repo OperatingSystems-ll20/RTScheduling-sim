@@ -333,14 +333,14 @@ static void setup(){
 
     _render = true;
     _exitLoop = false;
-    martianAmount = 2;
+    martianAmount = 3;
     _secTimer = 0;
     _ticks = 0;
     _options._showHUD = 1;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
     _options._errorPopUp = 0;
-    _options._schedulingAlgorithm = EDF;
+    _options._schedulingAlgorithm = RM;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
@@ -366,8 +366,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {3,4}; //TEST
-    int per[] = {6,9};  //TEST
+    int ener[] = {1,2,6}; //TEST
+    int per[] = {6,9,18};  //TEST
     for(int i=0; i<martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -467,7 +467,9 @@ void simLoop(){
                         // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
 
                     }
+                }
 
+                if(executeSchedule){
                     pthread_mutex_lock(&_mutex);
                     scheduleError = checkSchedulingError(_options._schedulingAlgorithm);
                     if(scheduleError){
@@ -476,11 +478,9 @@ void simLoop(){
                         stopAllThreads();
                         printf("Scheduling error!!!\n");
                     }
-                    pthread_mutex_unlock(&_mutex);
-                }
+                    // pthread_mutex_unlock(&_mutex);
 
-                if(executeSchedule){
-                    pthread_mutex_lock(&_mutex);
+                    // pthread_mutex_lock(&_mutex);
                     switch(_options._schedulingAlgorithm){
                         case RM:
                             rm_shchedule(&currentState, &nextMartianIdx, &wait);
