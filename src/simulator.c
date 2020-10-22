@@ -224,8 +224,8 @@ static void *moveMartian(void *pMartianData){
     martian->counter = 1;
     int prevResult = 0;
     int result = 0;
-    int prevSecTimer = _secTimer;
-    int readyCounter = 0;
+    // int prevSecTimer = _secTimer;
+    // int readyCounter = 0;
     while(martian->running){
         // pthread_mutex_lock(&_mutex);
         // while(!martian->update && !martian->doWork) pthread_cond_wait(&martian->cond, &_mutex);
@@ -245,7 +245,6 @@ static void *moveMartian(void *pMartianData){
                 martian->counter = 1;
                 if(martian->currentEnergy == 0){
                     martian->executed = 1; //For EDF
-                    // printf("Reducing of martian %s at counter = %d\n", martian->title, martian->counter);
                     printf("------ %s finished at sec=%d\n", martian->title, _secTimer);
                     pthread_mutex_unlock(&_mutex);
                     continue;
@@ -264,34 +263,21 @@ static void *moveMartian(void *pMartianData){
             }
 
             martian->counter++;
-            // martian->counter++;
-
-            // if(martian->currentEnergy == 0) martian->counter = 0;//Reset counter
             // printf("Executing %s \t energy=%d \t counter=%d \t sec=%d\n", martian->title, martian->currentEnergy, martian->counter, _secTimer);
             pthread_mutex_unlock(&_mutex);
         }
 
-        // if(martian->update){
-        //     martian->update = 0;
-        //     if(readyCounter == (martian->period * REFRESH_RATE)){
-        //         martian->ready = 1;
-        //         martian->periodCounter++;
-        //         readyCounter = 0;
-        //         printf("Timer of %s\n", martian->title);
-        //     }
-        //     else readyCounter++;
-        //     // printf("%s signaled!!!!\n", martian->title);
-        // }
         if(martian->update) {
-          if((result = _secTimer%martian->period) == 0){
-              if(result != prevResult){
-                  martian->ready = 1;
-                  martian->periodCounter++;
-                  // printf("Timer of %s\n", martian->title);
-              }
-          }
-          prevSecTimer = _secTimer;
+            if((result = _secTimer%martian->period) == 0){
+                if(result != prevResult){
+                    martian->ready = 1;
+                    martian->periodCounter++;
+                    // printf("Timer of %s\n", martian->title);
+                }
+            }
+          // prevSecTimer = _secTimer;
           prevResult = result;
+          martian->update = 0;
       }
 
         // pthread_mutex_unlock(&_mutex);
@@ -333,14 +319,14 @@ static void setup(){
 
     _render = true;
     _exitLoop = false;
-    martianAmount = 3;
+    martianAmount = 2;
     _secTimer = 0;
     _ticks = 0;
     _options._showHUD = 1;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
     _options._errorPopUp = 0;
-    _options._schedulingAlgorithm = RM;
+    _options._schedulingAlgorithm = EDF;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
@@ -366,8 +352,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {1,2,6}; //TEST
-    int per[] = {6,9,18};  //TEST
+    int ener[] = {3,4}; //TEST
+    int per[] = {6,9};  //TEST
     for(int i=0; i<martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -408,7 +394,6 @@ static void cleanUp(){
 void simLoop(){
     ALLEGRO_EVENT event;
     bool newEvent;
-    // int frameCounter = 0;
     Martian *nextMartian;
     int stopped = 0;
     char *message = "NO COLLISION";
@@ -420,12 +405,6 @@ void simLoop(){
         pthread_create(pthread, NULL, moveMartian, _martians.array[i]);
     }
 
-    printf("After start threads\n");
-    for(int i=0; i<martianAmount; i++){
-        Martian *martian = ((Martian*)_martians.array[i]);
-        printf("%s -> Do work=%d, Ready=%d, Energy=%d, Period=%d maxEnergy=%d\n", martian->title,
-        martian->doWork, martian->ready, martian->currentEnergy, martian->period, martian->maxEnergy);
-    }
 
     int nextMartianIdx = 0;
     int scheduleError = 0;
@@ -460,16 +439,37 @@ void simLoop(){
                         // printf("Second %d\n", _secTimer);
                         _ticks = -1;
                     }
+                }
+
+                if(executeSchedule){
+                    //Next thread acquires lock and executes
+                    if(!wait){
+                        nextMartian = ((Martian*)_martians.array[nextMartianIdx]);
+                        // printf("%s period Counter = %d ------\n", nextMartian->title, nextMartian->periodCounter);
+                        switch(currentState){
+                            case 0: //Ready
+                                nextMartian->currentEnergy = nextMartian->maxEnergy;
+                                nextMartian->doWork = 1;
+                                // pthread_cond_signal(&nextMartian->cond);
+                                // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
+                                break;
+                            case 1: //Executing
+                                nextMartian->doWork = 1;
+                                // pthread_cond_signal(&nextMartian->cond);
+                                // printf("Continue executing %s with energy=%d at second %d\n", nextMartian->title, nextMartian->currentEnergy, _secTimer);
+                                break;
+                        }
+                    }
 
                     //Signal all threads to update their time counter
                     for(int i=0; i<martianAmount; i++){
                         ((Martian*)_martians.array[i])->update = 1;
+                        while(((Martian*)_martians.array[i])->update == 1); //Wait until thread is updated
                         // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
 
                     }
-                }
 
-                if(executeSchedule){
+                    //Acquire lock and determine the next thread to execute
                     pthread_mutex_lock(&_mutex);
                     scheduleError = checkSchedulingError(_options._schedulingAlgorithm);
                     if(scheduleError){
@@ -490,27 +490,10 @@ void simLoop(){
                             break;
                     }
                     pthread_mutex_unlock(&_mutex);
-
-                    if(!wait){
-                        nextMartian = ((Martian*)_martians.array[nextMartianIdx]);
-                        // printf("%s period Counter = %d ------\n", nextMartian->title, nextMartian->periodCounter);
-                        switch(currentState){
-                            case 0: //Ready
-                                nextMartian->currentEnergy = nextMartian->maxEnergy;
-                                nextMartian->doWork = 1;
-                                // pthread_cond_signal(&nextMartian->cond);
-                                // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
-                                break;
-                            case 1: //Executing
-                                nextMartian->doWork = 1;
-                                // pthread_cond_signal(&nextMartian->cond);
-                                // printf("Continue executing %s with energy=%d at second %d\n", nextMartian->title, nextMartian->currentEnergy, _secTimer);
-                                break;
-                        }
-                    }
                 }
                 _ticks++;
                 _render = true;
+                // printf("#########################################\n");
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
