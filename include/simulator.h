@@ -12,9 +12,7 @@
 #include <nuklear/nuklear.h>
 #include <nuklear/nuklear_allegro5.h>
 
-static const double REFRESH_RATE = 30.0;
 static bool _render;
-static bool _exitLoop;
 
 int _martianAmount;
 unsigned int _secTimer;

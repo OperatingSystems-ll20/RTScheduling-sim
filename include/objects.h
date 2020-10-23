@@ -9,9 +9,11 @@ enum TILE_TYPE {WALL=0, PATH};
 enum DIRECTION {LEFT = 0, RIGHT, UP, DOWN};
 
 typedef struct {
+    int _exit;
     int _showHUD;
     int _showMartians;
     int _showMartianPos;
+    int _martianSpeed;
     int _pause;
     int _errorPopUp;
     int _schedulingAlgorithm;

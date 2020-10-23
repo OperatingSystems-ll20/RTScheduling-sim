@@ -109,7 +109,7 @@ static bool checkMove(Martian *pMartian){
     //Keep moving until the martian is inside the maze
     if((pMartian->posX+_mazeBounds.x0) < _mazeBounds.x0){
         pMartian->direction = RIGHT;
-        newX = pMartian->posX + MARTIAN_SPEED;
+        newX = pMartian->posX + _options._martianSpeed;
         newY = pMartian->posY;
         validMove = !checkMartianCollision(pMartian, &newX, &newY);
         // if(!checkMartianCollision(pMartian, &newX, &newY)) validMove = true;
@@ -125,7 +125,7 @@ static bool checkMove(Martian *pMartian){
 
     switch(pMartian->direction){
         case LEFT:
-            newX = pMartian->posX - MARTIAN_SPEED;
+            newX = pMartian->posX - _options._martianSpeed;
             newY = pMartian->posY;
             relX0 = newX/TILE_SIZE;
             relY0 = newY/TILE_SIZE;
@@ -149,7 +149,7 @@ static bool checkMove(Martian *pMartian){
             break;
 
         case RIGHT:
-            newX = pMartian->posX + MARTIAN_SPEED;
+            newX = pMartian->posX + _options._martianSpeed;
             newY = pMartian->posY;
             relX1 = (newX + MARTIAN_SIZE)/TILE_SIZE;
             relY0 = newY/TILE_SIZE;
@@ -174,7 +174,7 @@ static bool checkMove(Martian *pMartian){
 
         case UP:
             newX = pMartian->posX;
-            newY = pMartian->posY - MARTIAN_SPEED;
+            newY = pMartian->posY - _options._martianSpeed;
             relX0 = newX/TILE_SIZE;
             relY0 = newY/TILE_SIZE;
             relX1 = (newX+MARTIAN_SIZE-1)/TILE_SIZE;
@@ -198,7 +198,7 @@ static bool checkMove(Martian *pMartian){
 
         case DOWN:
             newX = pMartian->posX;
-            newY = pMartian->posY + MARTIAN_SPEED;
+            newY = pMartian->posY + _options._martianSpeed;
             relX0 = newX/TILE_SIZE;
             relY1 = (newY + MARTIAN_SIZE)/TILE_SIZE;
             relX1 = (newX+MARTIAN_SIZE-1)/TILE_SIZE;
@@ -329,13 +329,14 @@ static void setup(){
     setCustomStyle(_NKcontext);
 
     _render = true;
-    _exitLoop = false;
     _martianAmount = 3;
     _secTimer = 0;
     _ticks = 0;
+    _options._exit = 0;
     _options._showHUD = 1;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
+    _options._martianSpeed = MARTIAN_DEFAULT_SPEED;
     _options._pause = 0;
     _options._errorPopUp = 0;
     _options._schedulingAlgorithm = RM;
@@ -364,8 +365,8 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {1,2,6}; //TEST
-    int per[] = {6,9,18};  //TEST
+    int ener[] = {1,2,2}; //TEST
+    int per[] = {4,5,7};  //TEST
     for(int i=0; i<_martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -435,7 +436,6 @@ void simLoop(){
     ALLEGRO_EVENT event;
     bool newEvent;
     Martian *nextMartian;
-    int stopped = 0;
 
     //Allocate and start the threads
     for(int i=0; i<_martianAmount; i++){
@@ -443,8 +443,6 @@ void simLoop(){
         arrayInsert(&_threads, (void*)pthread);
         pthread_create(pthread, NULL, moveMartian, _martians.array[i]);
     }
-
-
     int nextMartianIdx = 0;
     int scheduleError = 0;
     int currentState = READY;
@@ -468,7 +466,6 @@ void simLoop(){
         ALLEGRO_TIMEOUT timeout;
         al_init_timeout(&timeout, 1.0/10.0);
         newEvent = al_wait_for_event_until(_eventQueue, &event, &timeout);
-        // al_wait_for_event(_eventQueue, &event);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
                 // printf("FRAME COUNTER=%d\n", _ticks);
@@ -481,7 +478,6 @@ void simLoop(){
                 }
 
                 if(executeSchedule && !_options._pause){
-
                     if(!wait){
                         allowExecution(nextMartian, currentState, nextMartianIdx);
                     }
@@ -492,7 +488,10 @@ void simLoop(){
                     //Acquire lock and determine the next thread to execute
                     pthread_mutex_lock(&_mutex);
                     schedule(&scheduleError, &executeSchedule, &currentState, &nextMartianIdx, &wait, _secTimer);
-                    if(scheduleError) stopAllThreads();
+                    if(scheduleError) {
+                        stopAllThreads();
+                        _options._errorPopUp = 1;
+                    }
                     pthread_mutex_unlock(&_mutex);
                 }
 
@@ -504,19 +503,19 @@ void simLoop(){
             case ALLEGRO_EVENT_KEY_DOWN:
                 if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
                     // stopAllThreads();
-                    _exitLoop = true;
+                    _options._exit = 1;
                 }
-                if(event.keyboard.keycode == ALLEGRO_KEY_X)
-                    _options._pause = 1;
+                if(event.keyboard.keycode == ALLEGRO_KEY_P)
+                    _options._pause = !_options._pause;
                 break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
                 // stopAllThreads();
-                _exitLoop = true;
+                _options._exit = true;
                 break;
         } //End event switch
 
-        if(_exitLoop) break;
+        if(_options._exit) break;
 
         //Nuklear event handling
         nk_input_begin(_NKcontext);
@@ -529,13 +528,14 @@ void simLoop(){
         nk_input_end(_NKcontext);
 
         //Draw Nuklear UI
-        drawMenu(_NKcontext, _mazeBounds);
+        drawMenu(_NKcontext);
+        showSimTime(_NKcontext, _secTimer, _ticks);
         if(_options._showHUD)
-            drawMartianHUD(_NKcontext, _mazeBounds, &_martians, &_HUDfunctions);
+            drawMartianHUD(_NKcontext, &_martians, &_HUDfunctions);
         if(_options._errorPopUp)
-            errorPopUp(_NKcontext, _secTimer);
-        if(_options._pause)
-            pausePopUp(_NKcontext);
+            showPopUp(_NKcontext, "Error", &_options._errorPopUp, "Scheduling error", "Ok");
+        if(_options._pause && !_options._errorPopUp && !scheduleError)
+            showPopUp(_NKcontext, "Pause", &_options._pause, "Simulation paused...", "Resume");
 
         //Render
         if(_render && al_is_event_queue_empty(_eventQueue)){

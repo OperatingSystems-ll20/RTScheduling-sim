@@ -11,17 +11,27 @@
 #include <nuklear/nuklear.h>
 #include <nuklear/nuklear_allegro5.h>
 
+static const int SIM_TIME_WIDTH = 200;
+static const int SIM_TIME_HEIGHT = 80;
+static const int SIM_TIME_POS_X = (SCREEN_WIDHT/2)-(SIM_TIME_WIDTH/2);
+
+static struct nk_rect MENU_BOUNDS;
+static struct nk_rect SIM_TIME_BOUNDS;
+static struct nk_rect POPUP_BOUNDS;
+static struct nk_rect MARTIAN_HUD_BOUNDS;
+
 typedef void (*funcPtr)(struct nk_context *pNKcontext, Martian *pMartian);
 
 extern Options _options;
+extern MazeBounds _mazeBounds;
 
 void setCustomStyle(struct nk_context *pNKcontext);
 
-void drawMenu(struct nk_context *pNKcontext, MazeBounds pMazeBounds);
-void errorPopUp(struct nk_context *pNKcontext, const int pSecTimer);
-void pausePopUp(struct nk_context *pNKcontext);
+void drawMenu(struct nk_context *pNKcontext);
+void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int pTicks);
+void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, const char *pMessage, const char *pButtonTxt);
 
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian);
-void drawMartianHUD(struct nk_context *pNKcontext, MazeBounds pMazeBounds, DynamicArray *pMartians, DynamicArray *pHUDfunctions);
+void drawMartianHUD(struct nk_context *pNKcontext, DynamicArray *pMartians, DynamicArray *pHUDfunctions);
 
 #endif
