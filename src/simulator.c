@@ -107,9 +107,19 @@ static bool checkMove(Martian *pMartian){
     bool validMove;
 
     //Keep moving until the martian is inside the maze
-    if((pMartian->posX+MARTIAN_SIZE+_mazeBounds.x0) < _mazeBounds.x0){
-        pMartian->posX += MARTIAN_SPEED;
-        validMove = true;
+    if((pMartian->posX+_mazeBounds.x0) < _mazeBounds.x0){
+        pMartian->direction = RIGHT;
+        newX = pMartian->posX + MARTIAN_SPEED;
+        newY = pMartian->posY;
+        validMove = !checkMartianCollision(pMartian, &newX, &newY);
+        // if(!checkMartianCollision(pMartian, &newX, &newY)) validMove = true;
+        // else validMode
+        // pMartian->posX += MARTIAN_SPEED;
+        // validMove = true;
+        if(validMove){
+            pMartian->posX = newX;
+            pMartian->posY = newY;
+        }
         return validMove;
     }
 
