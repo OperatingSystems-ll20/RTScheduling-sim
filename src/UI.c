@@ -79,23 +79,45 @@ void errorPopUp(struct nk_context *pNKcontext, const int pSecTimer){
 }
 
 
+void pausePopUp(struct nk_context *pNKcontext){
+    if(_options._pause) {
+        if (nk_begin(pNKcontext, "", nk_rect(0, 0, 0, 0), NK_WINDOW_BORDER)) {
+            static struct nk_rect s = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
+            if (nk_popup_begin(pNKcontext, NK_POPUP_STATIC, "Pause", 0, s)) {
+                nk_layout_row_dynamic(pNKcontext, 25, 1);
+                nk_label(pNKcontext, "Simulation paused...", NK_TEXT_LEFT);
+                // nk_layout_row_static(pNKcontext, 25, 60, 2);
+                nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 2);
+                // struct nk_rect bound;
+                // bound = nk_layout_space_bounds(pNKcontext);
+                // printf("X = %f, Y = %f, W = %f, H = %f\n", bound.x, bound.y, bound.w, bound.h);
+                nk_layout_space_push(pNKcontext, nk_rect(78-11,0,60,25));
+                if (nk_button_label(pNKcontext, "Resume")) {
+                    _options._pause = 0;
+                    nk_popup_close(pNKcontext);
+                }
+                // nk_layout_row_end(pNKcontext);
+                // nk_layout_space_push(pNKcontext, nk_rect(0.7,0.6,0.1,0.1));
+                nk_layout_space_end(pNKcontext);
+                nk_popup_end(pNKcontext);
+            }
+            else _options._pause = 0;
+        }
+        nk_end(pNKcontext);
+    }
+}
+
+
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     int MYtitlebar = nk_true;
     float ratio1[] = {0.3f, 0.7f};
-    struct nk_color workingColor = {0, 255, 0, 255};
+    struct nk_color stateColor = {0, 0, 0, 255};
     if (nk_tree_push_id(pNKcontext, NK_TREE_TAB, pMartian->title, NK_MAXIMIZED, pMartian->id)) {
         if(_options._showMartianPos){
             nk_layout_row_dynamic(pNKcontext, 30, 2);
             nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %zu" , pMartian->posX);
             nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %zu" , pMartian->posY);
         }
-        nk_layout_row_dynamic(pNKcontext, 30, 2);
-        nk_label(pNKcontext, "Moving:", NK_TEXT_LEFT);
-        if(!pMartian->doWork) {
-            workingColor.r = (nk_byte)255;
-            workingColor.g = (nk_byte)0;
-        }
-        nk_button_color(pNKcontext, workingColor);
 
         nk_layout_row(pNKcontext, NK_DYNAMIC, 30, 2, ratio1);
         nk_labelf(pNKcontext, NK_TEXT_LEFT, "Energy: %zu" , pMartian->currentEnergy);

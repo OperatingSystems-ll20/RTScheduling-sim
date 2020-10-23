@@ -12,6 +12,7 @@ typedef struct {
     int _showHUD;
     int _showMartians;
     int _showMartianPos;
+    int _pause;
     int _errorPopUp;
     int _schedulingAlgorithm;
 } Options;
@@ -32,6 +33,7 @@ typedef struct {
 typedef struct Martians{
     int id;
     char title[15];
+    int martianState;
     int posX;
     int posY;
     int direction;
