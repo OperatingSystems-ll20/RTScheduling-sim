@@ -19,18 +19,18 @@ static void checkInit(bool pTest, const char *pDescription){
 }
 
 static void stopAllThreads(){
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         ((Martian*)_martians.array[i])->running = 0;
         ((Martian*)_martians.array[i])->update = 1;
         // ((Martian*)_martians.array[i])->doWork = 1;
-        pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
+        // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
         pthread_join(*(pthread_t*)_threads.array[i], NULL);
     }
 }
 
 static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY){
     bool collision = false;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         if(i == pMartian->id) continue; //Skip collision with itself
         Martian *other = (Martian*)_martians.array[i];
 
@@ -253,6 +253,7 @@ static void *moveMartian(void *pMartianData){
                     if(!checkMove(martian)){
                         martian->direction = (rand() % (3 - 0 + 1)) + 0;
                     }
+
                     pthread_mutex_unlock(&_mutex);
                     continue;
                 }
@@ -261,7 +262,7 @@ static void *moveMartian(void *pMartianData){
             if(!checkMove(martian)){
                 martian->direction = (rand() % (3 - 0 + 1)) + 0;
             }
-
+            // martian->martianState = M_MOVING;
             martian->counter++;
             // printf("Executing %s \t energy=%d \t counter=%d \t sec=%d\n", martian->title, martian->currentEnergy, martian->counter, _secTimer);
             pthread_mutex_unlock(&_mutex);
@@ -313,20 +314,21 @@ static void setup(){
     al_register_event_source(_eventQueue, al_get_mouse_event_source());
     al_register_event_source(_eventQueue, al_get_timer_event_source(_timer));
 
-    _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 12, 0);
+    _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 14, 0);
     _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
     setCustomStyle(_NKcontext);
 
     _render = true;
     _exitLoop = false;
-    martianAmount = 2;
+    _martianAmount = 3;
     _secTimer = 0;
     _ticks = 0;
     _options._showHUD = 1;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
+    _options._pause = 0;
     _options._errorPopUp = 0;
-    _options._schedulingAlgorithm = EDF;
+    _options._schedulingAlgorithm = RM;
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
@@ -352,9 +354,9 @@ static void createMartians(){
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    int ener[] = {3,4}; //TEST
-    int per[] = {6,9};  //TEST
-    for(int i=0; i<martianAmount; i++){
+    int ener[] = {1,2,6}; //TEST
+    int per[] = {6,9,18};  //TEST
+    for(int i=0; i<_martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
             initPosY = MAZE_START_Y*TILE_SIZE;
@@ -390,16 +392,43 @@ static void cleanUp(){
     arrayFree(&_HUDfunctions, false);
 }
 
+static void render(){
+    al_clear_to_color(al_map_rgb(19, 43, 81));
+    // al_draw_text(_font, al_map_rgb(0, 0, 0), 0, 0, 0, message);
+    al_draw_bitmap(_mazeImg, _mazeBounds.x0, _mazeBounds.y0, 0);
+
+    //Draw the martians
+    if(_options._showMartians){
+        for(int i=0; i<_martianAmount; i++){
+            Martian *martian = (Martian*)_martians.array[i];
+            al_draw_filled_rectangle(martian->posX + _mazeBounds.x0,
+                martian->posY + _mazeBounds.y0,
+                martian->posX + _mazeBounds.x0 + MARTIAN_SIZE,
+                martian->posY + _mazeBounds.y0 + MARTIAN_SIZE,
+                al_map_rgb(0, 255, 0));
+            char tmp[4];
+            sprintf(tmp, "%d", i);
+            al_draw_text(_font, al_map_rgb(0, 0, 0),
+                martian->posX + _mazeBounds.x0,
+                martian->posY + _mazeBounds.y0,
+                0, tmp);
+        }
+    }
+
+    nk_allegro5_render();
+    al_flip_display();
+    _render = false;
+}
+
 
 void simLoop(){
     ALLEGRO_EVENT event;
     bool newEvent;
     Martian *nextMartian;
     int stopped = 0;
-    char *message = "NO COLLISION";
 
     //Allocate and start the threads
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         pthread_t *pthread = malloc(sizeof(pthread_t));
         arrayInsert(&_threads, (void*)pthread);
         pthread_create(pthread, NULL, moveMartian, _martians.array[i]);
@@ -433,7 +462,7 @@ void simLoop(){
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
                 // printf("FRAME COUNTER=%d\n", _ticks);
-                if(!scheduleError){
+                if(!scheduleError && !_options._pause){
                     if(_ticks == REFRESH_RATE-1){// 1 second
                         _secTimer++;
                         // printf("Second %d\n", _secTimer);
@@ -441,70 +470,38 @@ void simLoop(){
                     }
                 }
 
-                if(executeSchedule){
-                    //Next thread acquires lock and executes
+                if(executeSchedule && !_options._pause){
+
                     if(!wait){
-                        nextMartian = ((Martian*)_martians.array[nextMartianIdx]);
-                        // printf("%s period Counter = %d ------\n", nextMartian->title, nextMartian->periodCounter);
-                        switch(currentState){
-                            case 0: //Ready
-                                nextMartian->currentEnergy = nextMartian->maxEnergy;
-                                nextMartian->doWork = 1;
-                                // pthread_cond_signal(&nextMartian->cond);
-                                // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
-                                break;
-                            case 1: //Executing
-                                nextMartian->doWork = 1;
-                                // pthread_cond_signal(&nextMartian->cond);
-                                // printf("Continue executing %s with energy=%d at second %d\n", nextMartian->title, nextMartian->currentEnergy, _secTimer);
-                                break;
-                        }
+                        allowExecution(nextMartian, currentState, nextMartianIdx);
                     }
 
                     //Signal all threads to update their time counter
-                    for(int i=0; i<martianAmount; i++){
-                        ((Martian*)_martians.array[i])->update = 1;
-                        while(((Martian*)_martians.array[i])->update == 1); //Wait until thread is updated
-                        // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
-
-                    }
+                    updateThreadTimers();
 
                     //Acquire lock and determine the next thread to execute
                     pthread_mutex_lock(&_mutex);
-                    scheduleError = checkSchedulingError(_options._schedulingAlgorithm);
-                    if(scheduleError){
-                        executeSchedule = 0;
-                        _options._errorPopUp = 1;
-                        stopAllThreads();
-                        printf("Scheduling error!!!\n");
-                    }
-                    // pthread_mutex_unlock(&_mutex);
-
-                    // pthread_mutex_lock(&_mutex);
-                    switch(_options._schedulingAlgorithm){
-                        case RM:
-                            rm_shchedule(&currentState, &nextMartianIdx, &wait);
-                            break;
-                        case EDF:
-                            edf_schedule(&currentState, &nextMartianIdx, &wait, _secTimer);
-                            break;
-                    }
+                    schedule(&scheduleError, &executeSchedule, &currentState, &nextMartianIdx, &wait, _secTimer);
+                    if(scheduleError) stopAllThreads();
                     pthread_mutex_unlock(&_mutex);
                 }
-                _ticks++;
+
+                if(!scheduleError && !_options._pause) _ticks++;
                 _render = true;
                 // printf("#########################################\n");
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
                 if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
-                    stopAllThreads();
+                    // stopAllThreads();
                     _exitLoop = true;
                 }
+                if(event.keyboard.keycode == ALLEGRO_KEY_X)
+                    _options._pause = 1;
                 break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                stopAllThreads();
+                // stopAllThreads();
                 _exitLoop = true;
                 break;
         } //End event switch
@@ -527,34 +524,12 @@ void simLoop(){
             drawMartianHUD(_NKcontext, _mazeBounds, &_martians, &_HUDfunctions);
         if(_options._errorPopUp)
             errorPopUp(_NKcontext, _secTimer);
+        if(_options._pause)
+            pausePopUp(_NKcontext);
 
         //Render
         if(_render && al_is_event_queue_empty(_eventQueue)){
-            al_clear_to_color(al_map_rgb(19, 43, 81));
-            al_draw_text(_font, al_map_rgb(0, 0, 0), 0, 0, 0, message);
-            al_draw_bitmap(_mazeImg, _mazeBounds.x0, _mazeBounds.y0, 0);
-
-            //Draw the martians
-            if(_options._showMartians){
-                for(int i=0; i<martianAmount; i++){
-                    Martian *martian = (Martian*)_martians.array[i];
-                    al_draw_filled_rectangle(martian->posX + _mazeBounds.x0,
-                        martian->posY + _mazeBounds.y0,
-                        martian->posX + _mazeBounds.x0 + MARTIAN_SIZE,
-                        martian->posY + _mazeBounds.y0 + MARTIAN_SIZE,
-                        al_map_rgb(0, 255, 0));
-                    char tmp[4];
-                    sprintf(tmp, "%d", i);
-                    al_draw_text(_font, al_map_rgb(0, 0, 0),
-                        martian->posX + _mazeBounds.x0,
-                        martian->posY + _mazeBounds.y0,
-                        0, tmp);
-                }
-            }
-
-            nk_allegro5_render();
-            al_flip_display();
-            _render = false;
+            render();
         }
 
         else{ //Nuklear needs to be render all time
@@ -565,9 +540,7 @@ void simLoop(){
     } //End Loop
 
     //Stop all threads
-    for(int i=0; i<martianAmount; i++)
-        pthread_join(*(pthread_t*)_threads.array[i], NULL);
-
+    stopAllThreads();
     cleanUp();
 }
 

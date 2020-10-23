@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <objects.h>
 #include <consts.h>
@@ -6,7 +7,7 @@
 
 int rm_checkSchedulingError(){
     int result = 0;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if(martian->ready && martian->currentEnergy != 0){
             result = 1;
@@ -18,7 +19,7 @@ int rm_checkSchedulingError(){
 
 int rm_getShortestPeriod(){
     int candidate = -1;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if((!martian->ready && martian->currentEnergy == 0)){
             continue;
@@ -45,7 +46,7 @@ int rm_getShortestPeriod(){
 int rm_nextShortestPeriodIgnore(const int pIndexToIgnore){
     int candidate = -1;
     int first = 1;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if(i == pIndexToIgnore) continue;
 
@@ -111,7 +112,7 @@ void rm_shchedule(int *pCurrentState, int *pNextMartianIdx, int *pWait){
 
 int edf_checkSchedulingError(){
     int result = 0;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if( martian->ready && (martian->currentEnergy != 0 || martian->executed == 0) ) {
             result = 1;
@@ -123,7 +124,7 @@ int edf_checkSchedulingError(){
 
 int edf_getShortestExecution(int pSecTimer){
     int candidate = -1;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if((!martian->ready && martian->currentEnergy == 0)){ //Ignore idle
             continue;
@@ -155,7 +156,7 @@ int edf_getShortestExecution(int pSecTimer){
 int edf_nextShortestExecutionIgnore(const int pIndexToIgnore, int pSecTimer){
     int candidate = -1;
     int first = 1;
-    for(int i=0; i<martianAmount; i++){
+    for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
         if((i == pIndexToIgnore) || (!martian->ready && martian->currentEnergy == 0))
             continue;
@@ -221,4 +222,52 @@ int checkSchedulingError(const int pAlgorithm){
             break;
     }
     return result;
+}
+
+void schedule(int *pScheduleError, int *pExecuteSchedule, int *pCurrentState, int *pNextMartianIdx, int *pWait, int pSecTimer){
+    *pScheduleError = checkSchedulingError(_options._schedulingAlgorithm);
+    if(*pScheduleError){
+        *pExecuteSchedule = 0;
+        _options._errorPopUp = 1;
+        // stopAllThreads();
+        printf("Scheduling error!!!\n");
+        return;
+    }
+    // pthread_mutex_unlock(&_mutex);
+
+    // pthread_mutex_lock(&_mutex);
+    switch(_options._schedulingAlgorithm){
+        case RM:
+            rm_shchedule(pCurrentState, pNextMartianIdx, pWait);
+            break;
+        case EDF:
+            edf_schedule(pCurrentState, pNextMartianIdx, pWait, pSecTimer);
+            break;
+    }
+}
+
+void allowExecution(Martian *pNextMartian, const int pCurrentState, const int pNextMartianIdx){
+    pNextMartian = ((Martian*)_martians.array[pNextMartianIdx]);
+    // printf("%s period Counter = %d ------\n", nextMartian->title, nextMartian->periodCounter);
+    switch(pCurrentState){
+        case READY: //Ready
+            pNextMartian->currentEnergy = pNextMartian->maxEnergy;
+            pNextMartian->doWork = 1;
+            // pthread_cond_signal(&nextMartian->cond);
+            // printf("Start of %s at second %d\n", nextMartian->title, _secTimer);
+            break;
+        case EXECUTING: //Executing
+            pNextMartian->doWork = 1;
+            // pthread_cond_signal(&nextMartian->cond);
+            // printf("Continue executing %s with energy=%d at second %d\n", nextMartian->title, nextMartian->currentEnergy, _secTimer);
+            break;
+    }
+}
+
+void updateThreadTimers(){
+    for(int i=0; i<_martianAmount; i++){
+        ((Martian*)_martians.array[i])->update = 1;
+        while(((Martian*)_martians.array[i])->update == 1); //Wait until thread is updated
+        // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
+    }
 }

@@ -5,10 +5,11 @@
 #include <dynamicArray.h>
 
 enum SHEDULING_ALGORITHM { RM, EDF};
-enum MARTIAN_STATE {READY, EXECUTING, IDLE};
+enum THREAD_STATE {READY, EXECUTING, IDLE};
 
-extern int martianAmount;
+extern int _martianAmount;
 extern DynamicArray _martians;
+extern Options _options;
 
 
 
@@ -24,6 +25,9 @@ int edf_nextShortestExecutionIgnore(const int pIndexToIgnore, int pSecTimer);
 void edf_schedule(int *pCurrentState, int *pNextMartianIdx, int *pWait, int pSecTimer);
 
 int checkSchedulingError(const int pAlgorithm);
+void schedule(int *pScheduleError, int *pExecuteSchedule, int *pCurrentState, int *pNextMartianIdx, int *pWait, int pSecTimer);
+void allowExecution(Martian *pNextMartian, const int pCurrentState, const int pNextMartianIdx);
+void updateThreadTimers();
 
 
 

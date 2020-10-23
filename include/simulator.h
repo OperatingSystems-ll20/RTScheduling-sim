@@ -13,10 +13,10 @@
 #include <nuklear/nuklear_allegro5.h>
 
 static const double REFRESH_RATE = 30.0;
-bool _render;
-bool _exitLoop;
+static bool _render;
+static bool _exitLoop;
 
-int martianAmount;
+int _martianAmount;
 unsigned int _secTimer;
 unsigned int _ticks;
 
@@ -53,6 +53,7 @@ static void setup();
 static void loadAssets();
 static void createMartians();
 static void cleanUp();
+static void render();
 void simLoop();
 
 
