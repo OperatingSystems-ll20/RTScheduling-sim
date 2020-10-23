@@ -4,7 +4,6 @@
 #include <pthread.h>
 #include <dynamicArray.h>
 
-enum SHEDULING_ALGORITHM { RM, EDF};
 enum THREAD_STATE {READY, EXECUTING, IDLE};
 
 extern int _martianAmount;

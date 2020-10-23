@@ -9,14 +9,28 @@ enum TILE_TYPE {WALL=0, PATH};
 enum DIRECTION {LEFT = 0, RIGHT, UP, DOWN};
 
 typedef struct {
+    int energy;
+    int period;
+} NewMartian;
+
+typedef struct {
     int _exit;
     int _showHUD;
     int _showMartians;
     int _showMartianPos;
+    int _showSimTime;
+    int _newSimulationPopUp;
+    int _manualOpMenu;
+    int _automaticOpMenu;
     int _martianSpeed;
     int _pause;
+    int _startSimulation;
+    int _prepareAutomaticSim;
+    int _prepareManualSim;
     int _errorPopUp;
     int _schedulingAlgorithm;
+    NewMartian _newAutomaticMartians[MAX_MARTIANS];
+
 } Options;
 
 typedef struct MazeTiles{
@@ -47,6 +61,7 @@ typedef struct Martians{
     int doWork;
     int counter;
     int update;
+    int arrivalTime;
     int executed; //EDF
     int periodCounter; //EDF
     pthread_cond_t cond;

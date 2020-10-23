@@ -138,8 +138,8 @@ int edf_getShortestExecution(int pSecTimer){
         }
 
         else{
-            int testCurrent = abs(pSecTimer - (martian->period * martian->periodCounter));
-            int testCandidate = abs(pSecTimer -
+            int testCurrent = abs((pSecTimer-martian->arrivalTime) - (martian->period * martian->periodCounter));
+            int testCandidate = abs((pSecTimer-((Martian*)_martians.array[candidate])->arrivalTime) -
                 ( ((Martian*)_martians.array[candidate])->period * ((Martian*)_martians.array[candidate])->periodCounter ) );
 
             if(testCurrent == testCandidate){
@@ -171,8 +171,8 @@ int edf_nextShortestExecutionIgnore(const int pIndexToIgnore, int pSecTimer){
                 }
             }
             else {
-                int testCurrent = abs(pSecTimer - (martian->period * martian->periodCounter));
-                int testCandidate = abs(pSecTimer -
+                int testCurrent = abs((pSecTimer-martian->arrivalTime) - (martian->period * martian->periodCounter));
+                int testCandidate = abs((pSecTimer-((Martian*)_martians.array[candidate])->arrivalTime) -
                     ( ((Martian*)_martians.array[candidate])->period * ((Martian*)_martians.array[candidate])->periodCounter ) );
 
                 if(testCurrent == testCandidate){
