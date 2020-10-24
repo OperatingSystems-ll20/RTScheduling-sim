@@ -192,8 +192,8 @@ void automaticOpMenu(struct nk_context *pNKcontext){
             nk_layout_space_push(pNKcontext, nk_rect(300,0,60,25));
             if (nk_button_label(pNKcontext, "Add")) {
                 if(martianCounter < MAX_MARTIANS){
-                    _options._newAutomaticMartians[martianCounter].energy = energyProp;
-                    _options._newAutomaticMartians[martianCounter].period = periodProp;
+                    _options._newMartians[martianCounter].energy = energyProp;
+                    _options._newMartians[martianCounter].period = periodProp;
                     martianCounter++;
                 }
             }
@@ -210,8 +210,8 @@ void automaticOpMenu(struct nk_context *pNKcontext){
                     nk_label(pNKcontext, "Period", NK_TEXT_CENTERED);
                     for (int i = 0; i < martianCounter; i++){
                         nk_labelf(pNKcontext, NK_TEXT_CENTERED, "Martian %d" , i);
-                        nk_labelf(pNKcontext, NK_TEXT_CENTERED, "%d" , _options._newAutomaticMartians[i].energy);
-                        nk_labelf(pNKcontext, NK_TEXT_CENTERED, "%d" , _options._newAutomaticMartians[i].period);
+                        nk_labelf(pNKcontext, NK_TEXT_CENTERED, "%d" , _options._newMartians[i].energy);
+                        nk_labelf(pNKcontext, NK_TEXT_CENTERED, "%d" , _options._newMartians[i].period);
                     }
                     nk_group_end(pNKcontext);
                 }

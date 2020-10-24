@@ -15,6 +15,7 @@
 static bool _render;
 
 int _martianAmount;
+int _outsideCounter;
 unsigned int _secTimer;
 unsigned int _ticks;
 
@@ -42,7 +43,6 @@ DynamicArray _HUDfunctions;
 pthread_mutex_t _mutex;
 
 static void checkInit(bool pTest, const char *pDescription);
-static void stopAllThreads();
 static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY);
 static bool checkMove(Martian *pMartian);
 static void *moveMartian(void *pMartianData);
@@ -50,8 +50,10 @@ static void *moveMartian(void *pMartianData);
 static void setDefaultOptions();
 static void setup();
 static void loadAssets();
+static void insertMartian();
 static void createMartiansAutomaticMode();
 static void startThreads();
+static void stopAllThreads();
 static void cleanUp();
 static void render();
 void simLoop();

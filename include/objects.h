@@ -20,6 +20,7 @@ typedef struct {
     int _showMartianPos;
     int _showSimTime;
     int _newSimulationPopUp;
+    int _newMartian;
     int _manualOpMenu;
     int _automaticOpMenu;
     int _martianSpeed;
@@ -29,8 +30,7 @@ typedef struct {
     int _prepareManualSim;
     int _errorPopUp;
     int _schedulingAlgorithm;
-    NewMartian _newAutomaticMartians[MAX_MARTIANS];
-
+    NewMartian _newMartians[MAX_MARTIANS];
 } Options;
 
 typedef struct MazeTiles{
