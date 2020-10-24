@@ -8,6 +8,7 @@
 #define MAX_MARTIANS 8
 
 enum SHEDULING_ALGORITHM { RM, EDF};
+enum OPERATION_MODE {MANUAL, AUTOMATIC, UNDEFINED};
 
 static const double REFRESH_RATE = 30.0;
 
@@ -22,7 +23,7 @@ static const int MAZE_END_Y = 0;
 
 static const char *ABOUT_MANUAL_MODE = "* Manual mode allows to add new martians at any time";
 static const char *ABOUT_AUTOMATIC_MODE = "* Automatic mode starts the simulation with a set number of martians";
-
+static const char *ADD_MARTIAN_INFO = "You can add new martians at any moment in the menu or by pressing the N key";
 
 
 #endif

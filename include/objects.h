@@ -20,7 +20,9 @@ typedef struct {
     int _showMartianPos;
     int _showSimTime;
     int _newSimulationPopUp;
-    int _newMartian;
+    int _newMartianMenu;
+    int _insertNewMartian;
+    int _operationMode;
     int _manualOpMenu;
     int _automaticOpMenu;
     int _martianSpeed;

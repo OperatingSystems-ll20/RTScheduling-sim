@@ -10,8 +10,10 @@
 static struct nk_rect MENU_BOUNDS = {0, 0, SCREEN_WIDHT, 40};
 static struct nk_rect SIM_TIME_BOUNDS = {SIM_TIME_POS_X, SIM_TIME_HEIGHT, SIM_TIME_WIDTH, SIM_TIME_HEIGHT};
 static struct nk_rect POPUP_BOUNDS = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
+static struct nk_rect MANUAL_SELECTION_BOUNDS = {(SCREEN_WIDHT/2) - 130, (SCREEN_HEIGHT/2) - 125, 260, 250};
 static struct nk_rect POPUP_NEW_SIM_BOUNDS = {SCREEN_WIDHT/2 - 150, SCREEN_HEIGHT/2 - 75, 300, 150};
 static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 250, 400, 500};
+static struct nk_rect NEW_MARTIAN_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 125, 400, 250};
 
 void setCustomStyle(struct nk_context *pNKcontext){
     struct nk_color table[NK_COLOR_COUNT];
@@ -50,7 +52,6 @@ void setCustomStyle(struct nk_context *pNKcontext){
 }
 
 void drawMenu(struct nk_context *pNKcontext){
-    static int show_menu = nk_true;
     if (nk_begin(pNKcontext, "Menu", MENU_BOUNDS, NK_WINDOW_BORDER)) {
 
         nk_menubar_begin(pNKcontext);
@@ -63,20 +64,24 @@ void drawMenu(struct nk_context *pNKcontext){
             if (nk_menu_item_label(pNKcontext, "New simulation", NK_TEXT_LEFT))
                 _options._newSimulationPopUp = 1;
 
-            nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 2, ratio);
-            if(!_options._manualOpMenu){
+            
+            if(_options._operationMode == MANUAL){
+                nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 2, ratio);
                 if (nk_menu_item_label(pNKcontext, "New Martian", NK_TEXT_LEFT))
-                    show_menu = nk_false;
+                    _options._newMartianMenu = 1;
                 nk_label(pNKcontext, "N", NK_TEXT_RIGHT);
             }
-            if (nk_menu_item_label(pNKcontext, "Pause", NK_TEXT_LEFT))
-                _options._pause = 1;
-            nk_label(pNKcontext, "P", NK_TEXT_RIGHT);
+            if(_options._operationMode != UNDEFINED){
+                nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 2, ratio);
+                if (nk_menu_item_label(pNKcontext, "Pause", NK_TEXT_LEFT))
+                    _options._pause = 1;
+                nk_label(pNKcontext, "P", NK_TEXT_RIGHT);
+            }
 
             // nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 1, ratio);
             nk_layout_row_dynamic(pNKcontext, 25, 1);
-            if (nk_menu_item_label(pNKcontext, "Start", NK_TEXT_LEFT))
-                _options._startSimulation = 1;
+            // if (nk_menu_item_label(pNKcontext, "Start", NK_TEXT_LEFT))
+            //     _options._startSimulation = 1;
             if (nk_menu_item_label(pNKcontext, "Exit", NK_TEXT_LEFT))
                 _options._exit = 1;
             nk_menu_end(pNKcontext);
@@ -109,11 +114,12 @@ void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int p
     nk_end(pNKcontext);
 }
 
-void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, const char *pMessage, const char *pButtonTxt){
+void showPopUp(struct nk_context *pNKcontext, const char *pTitle, 
+                int *pOption, const char *pMessage, const char *pButtonTxt)
+{
     if(*pOption) {
         if (nk_begin(pNKcontext, pTitle, nk_rect(0, 0, 0, 0), NK_WINDOW_BORDER)) {
-            static struct nk_rect s = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
-            if (nk_popup_begin(pNKcontext, NK_POPUP_STATIC, "Pause", 0, POPUP_BOUNDS)) {
+            if (nk_popup_begin(pNKcontext, NK_POPUP_STATIC, "Small popUp", 0, POPUP_BOUNDS)) {
                 nk_layout_row_dynamic(pNKcontext, 25, 1);
                 nk_label(pNKcontext, pMessage, NK_TEXT_LEFT);
 
@@ -132,6 +138,39 @@ void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, 
     }
 }
 
+void manualModeScheduleSelection(struct nk_context *pNKcontext) {
+    if(_options._prepareManualSim) {
+        if (nk_begin(pNKcontext, "Manual operation mode", MANUAL_SELECTION_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE|
+            NK_WINDOW_MOVABLE)) 
+        {
+
+            nk_layout_row_dynamic(pNKcontext, 25, 1);
+            nk_label(pNKcontext, "Choose the scheduling algorithm", NK_TEXT_CENTERED);
+
+            nk_layout_row_dynamic(pNKcontext, 25, 2);
+            _options._schedulingAlgorithm = nk_option_label(pNKcontext, "RM",
+                _options._schedulingAlgorithm == RM) ? RM : _options._schedulingAlgorithm;
+            _options._schedulingAlgorithm = nk_option_label(pNKcontext, "EDF",
+                _options._schedulingAlgorithm == EDF) ? EDF : _options._schedulingAlgorithm;
+
+            nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
+            nk_layout_space_push(pNKcontext, nk_rect(60,0,130,25));
+            if (nk_button_label(pNKcontext, "Start simulation")) {
+                _options._startSimulation = 1;
+                _options._showSimTime = 1;
+                _options._prepareManualSim = 0;
+            }
+            nk_layout_space_end(pNKcontext);
+
+            nk_layout_row_dynamic(pNKcontext, 25, 1);
+            nk_layout_row_dynamic(pNKcontext, 60, 1);
+            nk_label_wrap(pNKcontext, ADD_MARTIAN_INFO);
+        }
+        else _options._prepareManualSim = 0;
+        nk_end(pNKcontext);
+    }
+}
+
 void newSimMenu(struct nk_context *pNKcontext){
     if(_options._newSimulationPopUp) {
         if (nk_begin(pNKcontext, "New Simulation", POPUP_NEW_SIM_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE)) {
@@ -144,6 +183,8 @@ void newSimMenu(struct nk_context *pNKcontext){
             nk_layout_row_dynamic(pNKcontext, 25, 2);
             if (nk_button_label(pNKcontext, "Manual")) {
                 _options._manualOpMenu = 1;
+                _options._operationMode = MANUAL;
+                _options._prepareManualSim = 1;
                 _options._newSimulationPopUp = 0;
             }
             if (nk_button_label(pNKcontext, "Automatic")) {
@@ -161,9 +202,6 @@ void newSimMenu(struct nk_context *pNKcontext){
                 nk_label_wrap(pNKcontext, ABOUT_AUTOMATIC_MODE);
                 nk_tooltip_end(pNKcontext);
             }
-
-
-
         }
         else _options._newSimulationPopUp = 0;
         nk_end(pNKcontext);
@@ -229,12 +267,46 @@ void automaticOpMenu(struct nk_context *pNKcontext){
                     _martianAmount = martianCounter;
                     martianCounter = 0;
                     _options._prepareAutomaticSim = 1;
+                    _options._operationMode = AUTOMATIC;
                     _options._automaticOpMenu = 0;
                 }
                 nk_layout_space_end(pNKcontext);
             }
         }
         else _options._automaticOpMenu = 0;
+        nk_end(pNKcontext);
+    }
+}
+
+void addMartianMenu(struct nk_context *pNKcontext){
+    if(_options._newMartianMenu) {
+        if (nk_begin(pNKcontext, "New martian", NEW_MARTIAN_MENU_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE|
+            NK_WINDOW_MOVABLE)) {
+
+            // static int martianCounter = 0;
+            static int energyProp = 2;
+            static int periodProp = 6;
+            nk_layout_row_begin(pNKcontext, NK_STATIC, 25, 3);
+            nk_layout_row_push(pNKcontext, 100);
+            nk_label(pNKcontext, "New martian:", NK_TEXT_LEFT);
+            nk_layout_row_push(pNKcontext, 130);
+            nk_property_int(pNKcontext, "#Energy:", 1, &energyProp, 20, 1, 1);
+            nk_layout_row_push(pNKcontext, 130);
+            nk_property_int(pNKcontext, "#Period:", 1, &periodProp, 40, 1, 1);
+            if(periodProp <= energyProp) periodProp = energyProp+1;
+            nk_layout_row_end(pNKcontext);
+
+            nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
+            nk_layout_space_push(pNKcontext, nk_rect(300,0,60,25));
+            if (nk_button_label(pNKcontext, "Add")) {
+                    _options._newMartians[0].energy = energyProp;
+                    _options._newMartians[0].period = periodProp;
+                    _options._insertNewMartian = 1;
+                    _options._newMartianMenu = 0;
+            }
+            nk_layout_space_end(pNKcontext);
+        }
+        else _options._newMartianMenu = 0;
         nk_end(pNKcontext);
     }
 }

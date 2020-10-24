@@ -18,9 +18,11 @@ static const int SIM_TIME_POS_X = (SCREEN_WIDHT/2)-(SIM_TIME_WIDTH/2);
 static struct nk_rect MENU_BOUNDS;
 static struct nk_rect SIM_TIME_BOUNDS;
 static struct nk_rect POPUP_BOUNDS;
+static struct nk_rect MANUAL_SELECTION_BOUNDS;
 static struct nk_rect POPUP_NEW_SIM_BOUNDS;
 static struct nk_rect MARTIAN_HUD_BOUNDS;
 static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS;
+static struct nk_rect NEW_MARTIAN_MENU_BOUNDS;
 
 typedef void (*funcPtr)(struct nk_context *pNKcontext, Martian *pMartian);
 
@@ -32,9 +34,12 @@ void setCustomStyle(struct nk_context *pNKcontext);
 
 void drawMenu(struct nk_context *pNKcontext);
 void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int pTicks);
-void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, const char *pMessage, const char *pButtonTxt);
+void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, 
+                const char *pMessage, const char *pButtonTxt);
+void manualModeScheduleSelection(struct nk_context *pNKcontext);
 void newSimMenu(struct nk_context *pNKcontext);
 void automaticOpMenu(struct nk_context *pNKcontext);
+void addMartianMenu(struct nk_context *pNKcontext);
 
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian);
 void drawMartianHUD(struct nk_context *pNKcontext, DynamicArray *pMartians, DynamicArray *pHUDfunctions);

@@ -297,18 +297,21 @@ static void *moveMartian(void *pMartianData){
 
 static void setDefaultOptions(){
     _options._exit = 0;
-    _options._showHUD = 1;
+    _options._showHUD = 0;
     _options._showMartians = 1;
     _options._showMartianPos = 0;
     _options._showSimTime = 0;
     _options._newSimulationPopUp = 0;
-    _options._newMartian = 0;
+    _options._newMartianMenu = 0;
+    _options._insertNewMartian = 0;
+    _options._operationMode = UNDEFINED;
     _options._manualOpMenu = 0;
     _options._automaticOpMenu = 0;
     _options._martianSpeed = MARTIAN_DEFAULT_SPEED;
     _options._pause = 0;
     _options._startSimulation = 0;
     _options._prepareAutomaticSim = 0;
+    _options._prepareManualSim = 0;
     _options._prepareManualSim = 0;
     _options._errorPopUp = 0;
     _options._schedulingAlgorithm = RM;
@@ -378,9 +381,16 @@ static void loadAssets(){
 static void insertMartian(){
     Martian *martian;
     int initPosX, initPosY;
-    if(_outsideCounter == 0){
+    initPosY = MAZE_START_Y*TILE_SIZE;
+    if(_outsideCounter == 0)
         initPosX = (MAZE_START_X*TILE_SIZE) - 5;
-        initPosY = MAZE_START_Y*TILE_SIZE;
+    else{
+        int idx = 0;
+        for(int i=0; i<_martianAmount; i++){
+            if(((Martian*)_martians.array[i])->posX < ((Martian*)_martians.array[idx])->posX)
+                idx = i;
+        }
+        initPosX = ((Martian*)_martians.array[idx])->posX - (MARTIAN_SIZE+5);
     }
 
     martian = newMartian(initPosX, initPosY, RIGHT,
@@ -522,7 +532,7 @@ void simLoop(){
         newEvent = al_wait_for_event_until(_eventQueue, &event, &timeout);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
-                if(_options._automaticOpMenu && _options._startSimulation && firstExecution){
+                if(_options._operationMode == AUTOMATIC && _options._startSimulation && firstExecution){
                     for(int i=0; i<_martianAmount; i++){
                         ((Martian*)_martians.array[i])->arrivalTime = _secTimer;
                     }
@@ -544,10 +554,10 @@ void simLoop(){
                     }
 
                     if(_ticks == 0){
-                        if(_options._newMartian) {
+                        if(_options._insertNewMartian) {
                             insertMartian();
                             schedule(&scheduleError, &executeSchedule, &currentState, &nextMartianIdx, &wait, _secTimer);
-                            _options._newMartian = 0;
+                            _options._insertNewMartian = 0;
                         }
                     }
                 }
@@ -564,6 +574,7 @@ void simLoop(){
                     pthread_mutex_lock(&_mutex);
                     schedule(&scheduleError, &executeSchedule, &currentState, &nextMartianIdx, &wait, _secTimer);
                     if(scheduleError) {
+                        _options._newMartianMenu = 0;
                         stopAllThreads();
                         _options._errorPopUp = 1;
                     }
@@ -578,8 +589,11 @@ void simLoop(){
 
             case ALLEGRO_EVENT_KEY_DOWN:
                 if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
-                    // stopAllThreads();
                     _options._exit = 1;
+                }
+                if(event.keyboard.keycode == ALLEGRO_KEY_N){
+                    if(!scheduleError && _options._operationMode == MANUAL)
+                        _options._newMartianMenu = 1;
                 }
                 if(event.keyboard.keycode == ALLEGRO_KEY_P)
                     _options._pause = !_options._pause;
@@ -619,13 +633,18 @@ void simLoop(){
             showPopUp(_NKcontext, "Error", &_options._errorPopUp, "Scheduling error", "Ok");
         if(_options._pause && !_options._errorPopUp && !scheduleError)
             showPopUp(_NKcontext, "Pause", &_options._pause, "Simulation paused...", "Resume");
+        if(_options._newMartianMenu && !scheduleError)
+            addMartianMenu(_NKcontext);
         if(_options._prepareAutomaticSim){
             createMartiansAutomaticMode();
             startThreads();
             _options._prepareAutomaticSim = 0;
             _options._startSimulation = 1;
             _options._showSimTime = 1;
+            _options._showHUD = 1;
         }
+        if(_options._prepareManualSim)
+            manualModeScheduleSelection(_NKcontext);
 
         //Render
         if(_render && al_is_event_queue_empty(_eventQueue)){
