@@ -28,6 +28,7 @@ typedef struct {
     int _martianSpeed;
     int _pause;
     int _startSimulation;
+    int _stopSimulation;
     int _prepareAutomaticSim;
     int _prepareManualSim;
     int _errorPopUp;

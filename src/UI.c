@@ -65,7 +65,7 @@ void drawMenu(struct nk_context *pNKcontext){
                 _options._newSimulationPopUp = 1;
 
             
-            if(_options._operationMode == MANUAL){
+            if(_options._operationMode == MANUAL && !_options._stopSimulation){
                 nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 2, ratio);
                 if (nk_menu_item_label(pNKcontext, "New Martian", NK_TEXT_LEFT))
                     _options._newMartianMenu = 1;
@@ -223,7 +223,7 @@ void automaticOpMenu(struct nk_context *pNKcontext){
             nk_property_int(pNKcontext, "#Energy:", 1, &energyProp, 20, 1, 1);
             nk_layout_row_push(pNKcontext, 130);
             nk_property_int(pNKcontext, "#Period:", 1, &periodProp, 40, 1, 1);
-            if(periodProp <= energyProp) periodProp = energyProp+1;
+            if(periodProp <= energyProp) periodProp = energyProp;
             nk_layout_row_end(pNKcontext);
 
             nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
@@ -293,7 +293,7 @@ void addMartianMenu(struct nk_context *pNKcontext){
             nk_property_int(pNKcontext, "#Energy:", 1, &energyProp, 20, 1, 1);
             nk_layout_row_push(pNKcontext, 130);
             nk_property_int(pNKcontext, "#Period:", 1, &periodProp, 40, 1, 1);
-            if(periodProp <= energyProp) periodProp = energyProp+1;
+            if(periodProp <= energyProp) periodProp = energyProp;
             nk_layout_row_end(pNKcontext);
 
             nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);

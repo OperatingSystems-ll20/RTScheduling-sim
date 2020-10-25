@@ -7,6 +7,7 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <consts.h>
+#include <simLogger.h>
 #include <objects.h>
 #include <UI.h>
 #include <schedule.h>
@@ -238,6 +239,7 @@ static void *moveMartian(void *pMartianData){
             // printf("martian %s at counter = %d\n", martian->title, martian->counter);
             if(martian->currentEnergy == martian->maxEnergy && martian->counter == 1){
                 martian->executed = 0; //For EDF
+                logMartianEvent(MARTIAN_START, martian->id, _secTimer, "Martian started");
                 // printf("Start of %s at sec=%d\n", martian->title, _secTimer);
             }
 
@@ -246,6 +248,7 @@ static void *moveMartian(void *pMartianData){
                 martian->counter = 1;
                 if(martian->currentEnergy == 0){
                     martian->executed = 1; //For EDF
+                    logMartianEvent(MARTIAN_END, martian->id, _secTimer, "Martian finished");
                     // printf("------ %s finished at sec=%d\n", martian->title, _secTimer);
                     pthread_mutex_unlock(&_mutex);
                     continue;
@@ -310,6 +313,7 @@ static void setDefaultOptions(){
     _options._martianSpeed = MARTIAN_DEFAULT_SPEED;
     _options._pause = 0;
     _options._startSimulation = 0;
+    _options._stopSimulation = 0;
     _options._prepareAutomaticSim = 0;
     _options._prepareManualSim = 0;
     _options._prepareManualSim = 0;
@@ -363,6 +367,8 @@ static void setup(){
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
     checkInit(arrayInit(&_HUDfunctions, 2, sizeof(funcPtr)), "Array HUD functions");
+
+    checkInit(initLogger(), "Simulation logger");
     pthread_mutex_init(&_mutex, NULL);
 }
 
@@ -482,6 +488,7 @@ static void cleanUp(){
     arrayFree(&_martians, true);
     arrayFree(&_threads, true);
     arrayFree(&_HUDfunctions, false);
+    closeLogger();
 }
 
 static void render(){
@@ -524,6 +531,7 @@ void simLoop(){
     int wait = 0;
     int executeSchedule = 1;
     int firstExecution = 1;
+    int firstSimLoop = 1;
 
     al_start_timer(_timer);
     while(1){
@@ -532,7 +540,13 @@ void simLoop(){
         newEvent = al_wait_for_event_until(_eventQueue, &event, &timeout);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
-                if(_options._operationMode == AUTOMATIC && _options._startSimulation && firstExecution){
+                if(firstSimLoop){
+                    logSimEvent(SIM_START, _secTimer, "Simulation started");
+                    firstSimLoop = 0;
+                }
+                if(_options._operationMode == AUTOMATIC && _options._startSimulation 
+                    && !_options._stopSimulation && firstExecution)
+                {
                     for(int i=0; i<_martianAmount; i++){
                         ((Martian*)_martians.array[i])->arrivalTime = _secTimer;
                     }
@@ -544,8 +558,8 @@ void simLoop(){
                 }
 
                 // printf("FRAME COUNTER=%d\n", _ticks);
-                if(!scheduleError && !_options._pause && 
-                    _options._startSimulation && _options._showSimTime)
+                if(!scheduleError && !_options._pause && _options._startSimulation 
+                    && !_options._stopSimulation && _options._showSimTime)
                 {
                     if(_ticks == REFRESH_RATE-1){// 1 second
                         _secTimer++;
@@ -562,7 +576,8 @@ void simLoop(){
                     }
                 }
 
-                if(executeSchedule && !_options._pause && _options._startSimulation && _martianAmount){
+                if(executeSchedule && !_options._pause && _options._startSimulation 
+                    && !_options._stopSimulation && _martianAmount){
                     if(!wait){
                         allowExecution(nextMartian, currentState, nextMartianIdx);
                     }
@@ -575,14 +590,15 @@ void simLoop(){
                     schedule(&scheduleError, &executeSchedule, &currentState, &nextMartianIdx, &wait, _secTimer);
                     if(scheduleError) {
                         _options._newMartianMenu = 0;
-                        stopAllThreads();
                         _options._errorPopUp = 1;
+                        logSimEvent(SCHEDULE_ERROR, _secTimer, "Scheduling error");
+                        stopAllThreads();
                     }
                     pthread_mutex_unlock(&_mutex);
                 }
 
-                if(!scheduleError && !_options._pause && 
-                    _options._startSimulation && _options._showSimTime) _ticks++;
+                if(!scheduleError && !_options._pause && _options._startSimulation 
+                    && !_options._stopSimulation && _options._showSimTime) _ticks++;
 
                 _render = true;
                 break;
@@ -597,6 +613,12 @@ void simLoop(){
                 }
                 if(event.keyboard.keycode == ALLEGRO_KEY_P)
                     _options._pause = !_options._pause;
+                if(event.keyboard.keycode == ALLEGRO_KEY_X)
+                    if(!_options._stopSimulation){
+                        _options._stopSimulation = 1;
+                        logSimEvent(SIM_END, _secTimer, "Simulation ended");
+                    }
+                        
                 break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
@@ -605,7 +627,8 @@ void simLoop(){
                 break;
         } //End event switch
 
-        if(_options._exit) break;
+        if(_options._exit)
+            break;
 
         //Nuklear event handling
         nk_input_begin(_NKcontext);
@@ -631,7 +654,7 @@ void simLoop(){
             drawMartianHUD(_NKcontext, &_martians, &_HUDfunctions);
         if(_options._errorPopUp)
             showPopUp(_NKcontext, "Error", &_options._errorPopUp, "Scheduling error", "Ok");
-        if(_options._pause && !_options._errorPopUp && !scheduleError)
+        if(_options._pause && !_options._errorPopUp && !scheduleError && !_options._stopSimulation)
             showPopUp(_NKcontext, "Pause", &_options._pause, "Simulation paused...", "Resume");
         if(_options._newMartianMenu && !scheduleError)
             addMartianMenu(_NKcontext);
