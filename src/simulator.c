@@ -274,7 +274,6 @@ static void *moveMartian(void *pMartianData){
                 // printf("--- %s continue at sec=%d\n", martian->title, _secTimer);
             }
                 
-
             if(first){
                 if(martian->posX >= 0) {
                     _outsideCounter--;

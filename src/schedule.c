@@ -9,7 +9,8 @@ int rm_checkSchedulingError(){
     int result = 0;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
-        if(martian->ready && martian->currentEnergy != 0){
+        if( (martian->ready && martian->currentEnergy != 0) || 
+            (martian->ready && martian->periodCounter > 1) ){
             result = 1;
             break;
         }
