@@ -27,6 +27,7 @@ static const char *ABOUT_AUTOMATIC_MODE = "* Automatic mode starts the simulatio
     "with a set number of martians";
 static const char *ADD_MARTIAN_INFO = "You can add new martians at any moment in"
     " the menu or by pressing the N key";
+static const char *STOP_SIM_WARNING = "Do you really want to stop the simulation now?";
 
 static const char *LOG_FILE_PATH = "/tmp/tmpLog.txt";
 static const char *REGEX_1 = "^\\[([[:digit:]])\\][[:blank:]]*\\[([[:digit:]]*)\\][[:blank:]]*(.*)$";

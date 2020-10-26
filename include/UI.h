@@ -23,6 +23,7 @@ static struct nk_rect POPUP_NEW_SIM_BOUNDS;
 static struct nk_rect MARTIAN_HUD_BOUNDS;
 static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS;
 static struct nk_rect NEW_MARTIAN_MENU_BOUNDS;
+static struct nk_rect REPORT_WINDOW_BOUNDS;
 
 typedef void (*funcPtr)(struct nk_context *pNKcontext, Martian *pMartian);
 
@@ -36,6 +37,10 @@ void drawMenu(struct nk_context *pNKcontext);
 void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int pTicks);
 void showPopUp(struct nk_context *pNKcontext, const char *pTitle, int *pOption, 
                 const char *pMessage, const char *pButtonTxt);
+
+void stopSimMenu(struct nk_context *pNKcontext);
+void showReportWindow(struct nk_context *pNKcontext, struct nk_image pReportImg);
+
 void manualModeScheduleSelection(struct nk_context *pNKcontext);
 void newSimMenu(struct nk_context *pNKcontext);
 void automaticOpMenu(struct nk_context *pNKcontext);

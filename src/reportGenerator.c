@@ -63,7 +63,7 @@ static void createBitmap(){
 
     int bmpWidth = (SECOND_WIDTH * _simTime) + 50;
 
-    al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
+    // al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
     _reportBMP = al_create_bitmap(bmpWidth, BMP_HEIGHT);
 }
 

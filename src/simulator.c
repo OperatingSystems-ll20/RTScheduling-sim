@@ -319,6 +319,8 @@ static void setDefaultOptions(){
     _options._pause = 0;
     _options._startSimulation = 0;
     _options._stopSimulation = 0;
+    _options._showStopSimWarning = 0;
+    _options._showReport = 0;
     _options._prepareAutomaticSim = 0;
     _options._prepareManualSim = 0;
     _options._prepareManualSim = 0;
@@ -360,6 +362,7 @@ static void setup(){
 
     _NKfont = nk_allegro5_font_create_from_file("./res/Roboto-Regular.ttf", 14, 0);
     _NKcontext = nk_allegro5_init(_NKfont, _display, SCREEN_WIDHT, SCREEN_HEIGHT);
+    _reportImg = NULL;
     setCustomStyle(_NKcontext);
 
     _render = true;
@@ -399,6 +402,15 @@ static ALLEGRO_COLOR* getRandomColor(){
     return color;
 }
 
+static void createReportImage(){
+    _reportImg = malloc(sizeof(struct nk_image));
+    ALLEGRO_BITMAP *bmp = generateReport(_martianColors, _font);
+    al_set_target_bitmap(al_get_backbuffer(_display));
+    _reportImg->handle.ptr = bmp;
+    _reportImg->w = al_get_bitmap_width(bmp);
+    _reportImg->h = al_get_bitmap_height(bmp);
+}
+
 static void insertMartian(){
     Martian *martian;
     int initPosX, initPosY;
@@ -422,7 +434,7 @@ static void insertMartian(){
     sprintf(martian->title, "%s %d","Martian", martian->id);
 
     arrayInsert(&_martians, (void*)martian);
-    arrayInsert(&_martianColors, (void*)getRandomColor);
+    arrayInsert(&_martianColors, (void*)getRandomColor());
     arrayInsert(&_HUDfunctions, &martianHUD);
     _outsideCounter++;
 
@@ -507,6 +519,8 @@ static void cleanUp(){
     arrayFree(&_HUDfunctions, false);
     if(!_options._stopSimulation)
         closeLogger();
+    if(_reportImg != NULL)
+        free(_reportImg);
 }
 
 static void render(){
@@ -611,6 +625,7 @@ void simLoop(){
                     if(scheduleError) {
                         _options._newMartianMenu = 0;
                         _options._errorPopUp = 1;
+                        _options._stopSimulation = 1;
                         logSimEvent(SCHEDULE_ERROR, _secTimer, "Scheduling error");
                         stopAllThreads();
                     }
@@ -635,10 +650,8 @@ void simLoop(){
                     _options._pause = !_options._pause;
                 if(event.keyboard.keycode == ALLEGRO_KEY_X)
                     if(!_options._stopSimulation){
-                        _options._stopSimulation = 1;
-                        logSimEvent(SIM_END, _secTimer, "Simulation ended");
-                        closeLogger();
-                        generateReport(_martianColors, _font);
+                        _options._pause = 1;
+                        _options._showStopSimWarning = 1;
                     }
                         
                 break;
@@ -676,7 +689,8 @@ void simLoop(){
             drawMartianHUD(_NKcontext, &_martians, &_HUDfunctions);
         if(_options._errorPopUp)
             showPopUp(_NKcontext, "Error", &_options._errorPopUp, "Scheduling error", "Ok");
-        if(_options._pause && !_options._errorPopUp && !scheduleError && !_options._stopSimulation)
+        if(_options._pause && !_options._showStopSimWarning && !_options._errorPopUp && 
+                !scheduleError && !_options._stopSimulation)
             showPopUp(_NKcontext, "Pause", &_options._pause, "Simulation paused...", "Resume");
         if(_options._newMartianMenu && !scheduleError)
             addMartianMenu(_NKcontext);
@@ -690,6 +704,22 @@ void simLoop(){
         }
         if(_options._prepareManualSim)
             manualModeScheduleSelection(_NKcontext);
+
+        if(_options._showStopSimWarning){
+            stopSimMenu(_NKcontext);
+            if(_options._stopSimulation){
+                logSimEvent(SIM_END, _secTimer, "Simulation ended");
+                closeLogger();
+            }
+        }
+            
+        if(_options._showReport && !_options._errorPopUp && _options._stopSimulation){
+            if(_reportImg == NULL){
+                createReportImage();
+            }
+            showReportWindow(_NKcontext, *_reportImg);
+        }
+
 
         //Render
         if(_render && al_is_event_queue_empty(_eventQueue)){

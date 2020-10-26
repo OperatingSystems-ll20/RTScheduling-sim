@@ -31,6 +31,7 @@ ALLEGRO_BITMAP *_mazeImgTiny;
 //** NUKLEAR **/
 NkAllegro5Font *_NKfont;
 struct nk_context *_NKcontext;
+struct nk_image *_reportImg;
 
 MazeBounds _mazeBounds;
 MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
@@ -52,6 +53,7 @@ static void setDefaultOptions();
 static void setup();
 static void loadAssets();
 static ALLEGRO_COLOR* getRandomColor();
+static void createReportImage();
 static void insertMartian();
 static void createMartiansAutomaticMode();
 static void startThreads();

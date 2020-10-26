@@ -29,6 +29,8 @@ typedef struct {
     int _pause;
     int _startSimulation;
     int _stopSimulation;
+    int _showStopSimWarning;
+    int _showReport;
     int _prepareAutomaticSim;
     int _prepareManualSim;
     int _errorPopUp;
