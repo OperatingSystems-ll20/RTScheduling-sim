@@ -8,6 +8,7 @@
 #include <allegro5/allegro_font.h>
 #include <consts.h>
 #include <simLogger.h>
+#include <reportGenerator.h>
 #include <objects.h>
 #include <UI.h>
 #include <schedule.h>
@@ -224,14 +225,11 @@ static void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
     martian->counter = 1;
     int prevResult = 0;
+    int prevSecond = 0;
     int result = 0;
     int first = 1;
-    // int prevSecTimer = _secTimer;
-    // int readyCounter = 0;
-    while(martian->running){
-        // pthread_mutex_lock(&_mutex);
-        // while(!martian->update && !martian->doWork) pthread_cond_wait(&martian->cond, &_mutex);
 
+    while(martian->running){
         if(martian->doWork){
             pthread_mutex_lock(&_mutex);
             martian->ready = 0;
@@ -239,6 +237,7 @@ static void *moveMartian(void *pMartianData){
             // printf("martian %s at counter = %d\n", martian->title, martian->counter);
             if(martian->currentEnergy == martian->maxEnergy && martian->counter == 1){
                 martian->executed = 0; //For EDF
+                prevSecond = _secTimer;
                 logMartianEvent(MARTIAN_START, martian->id, _secTimer, "Martian started");
                 // printf("Start of %s at sec=%d\n", martian->title, _secTimer);
             }
@@ -257,7 +256,10 @@ static void *moveMartian(void *pMartianData){
                     if(!checkMove(martian)){
                         martian->direction = (rand() % (3 - 0 + 1)) + 0;
                     }
-
+                    
+                    prevSecond = _secTimer;
+                    logMartianEvent(MARTIAN_CONTINUE, martian->id, _secTimer, "Martian continue");
+                    // printf("--- %s continue at sec=%d\n", martian->title, _secTimer);
                     pthread_mutex_unlock(&_mutex);
                     continue;
                 }
@@ -266,6 +268,12 @@ static void *moveMartian(void *pMartianData){
             if(!checkMove(martian)){
                 martian->direction = (rand() % (3 - 0 + 1)) + 0;
             }
+            if(prevSecond != _secTimer){
+                prevSecond = _secTimer;
+                logMartianEvent(MARTIAN_CONTINUE, martian->id, _secTimer, "Martian continue");
+                // printf("--- %s continue at sec=%d\n", martian->title, _secTimer);
+            }
+                
 
             if(first){
                 if(martian->posX >= 0) {
@@ -274,7 +282,6 @@ static void *moveMartian(void *pMartianData){
                 }
             }
             
-            // martian->martianState = M_MOVING;
             martian->counter++;
             // printf("Executing %s \t energy=%d \t counter=%d \t sec=%d\n", martian->title, martian->currentEnergy, martian->counter, _secTimer);
             pthread_mutex_unlock(&_mutex);
@@ -285,15 +292,13 @@ static void *moveMartian(void *pMartianData){
                 if(result != prevResult){
                     martian->ready = 1;
                     martian->periodCounter++;
+                    logMartianEvent(MARTIAN_TIMER, martian->id, _secTimer, "Martian timer");
                     // printf("Timer of %s\n", martian->title);
                 }
             }
-          // prevSecTimer = _secTimer;
           prevResult = result;
           martian->update = 0;
       }
-
-        // pthread_mutex_unlock(&_mutex);
         usleep(10); //Limit thread execution
     }
 }
@@ -365,6 +370,7 @@ static void setup(){
     setDefaultOptions();
 
     checkInit(arrayInit(&_martians, 2, sizeof(Martian)), "Array of martians");
+    checkInit(arrayInit(&_martianColors, 2, sizeof(ALLEGRO_COLOR)), "Array of colors");
     checkInit(arrayInit(&_threads, 2, sizeof(pthread_t)), "Array of pthreads");
     checkInit(arrayInit(&_HUDfunctions, 2, sizeof(funcPtr)), "Array HUD functions");
 
@@ -382,6 +388,15 @@ static void loadAssets(){
 
     _mazeImgTiny = al_load_bitmap("./res/mazeTiny.png");
     checkInit(_mazeImgTiny, "Maze image tiny");
+}
+
+static ALLEGRO_COLOR* getRandomColor(){
+    int randR = (rand() % (230 - 70 + 1)) + 70;
+    int randG = (rand() % (230 - 70 + 1)) + 70;
+    int randB = (rand() % (230 - 70 + 1)) + 70;
+    ALLEGRO_COLOR *color = malloc(sizeof(ALLEGRO_COLOR)); 
+    *color = al_map_rgb(randR, randG, randB);
+    return color;
 }
 
 static void insertMartian(){
@@ -407,6 +422,7 @@ static void insertMartian(){
     sprintf(martian->title, "%s %d","Martian", martian->id);
 
     arrayInsert(&_martians, (void*)martian);
+    arrayInsert(&_martianColors, (void*)getRandomColor);
     arrayInsert(&_HUDfunctions, &martianHUD);
     _outsideCounter++;
 
@@ -445,7 +461,7 @@ static void createMartiansAutomaticMode(){
         sprintf(martian->title, "%s %d","Martian", i);
         pthread_cond_init(&martian->cond, NULL);
         arrayInsert(&_martians, (void*)martian);
-
+        arrayInsert(&_martianColors, (void*)getRandomColor());
         arrayInsert(&_HUDfunctions, &martianHUD);
         row = !row;
 
@@ -486,9 +502,11 @@ static void cleanUp(){
     al_destroy_event_queue(_eventQueue);
 
     arrayFree(&_martians, true);
+    arrayFree(&_martianColors, true);
     arrayFree(&_threads, true);
     arrayFree(&_HUDfunctions, false);
-    closeLogger();
+    if(!_options._stopSimulation)
+        closeLogger();
 }
 
 static void render(){
@@ -500,11 +518,13 @@ static void render(){
         if(_options._showMartians){
             for(int i=0; i<_martianAmount; i++){
                 Martian *martian = (Martian*)_martians.array[i];
+                ALLEGRO_COLOR *color = ((ALLEGRO_COLOR*)_martianColors.array[i]);
                 al_draw_filled_rectangle(martian->posX + _mazeBounds.x0,
                     martian->posY + _mazeBounds.y0,
                     martian->posX + _mazeBounds.x0 + MARTIAN_SIZE,
                     martian->posY + _mazeBounds.y0 + MARTIAN_SIZE,
-                    al_map_rgb(0, 255, 0));
+                    *color);
+                    
                 char tmp[4];
                 sprintf(tmp, "%d", martian->id);
                 al_draw_text(_font, al_map_rgb(0, 0, 0),
@@ -554,7 +574,7 @@ void simLoop(){
                         &nextMartianIdx, &wait, _secTimer);
                     _ticks = 0;
                     firstExecution = 0;
-                    printf("Start at %d with ticks=%d and algorithm=%d\n", _secTimer, _ticks, _options._schedulingAlgorithm);
+                    // printf("Start at %d with ticks=%d and algorithm=%d\n", _secTimer, _ticks, _options._schedulingAlgorithm);
                 }
 
                 // printf("FRAME COUNTER=%d\n", _ticks);
@@ -617,6 +637,8 @@ void simLoop(){
                     if(!_options._stopSimulation){
                         _options._stopSimulation = 1;
                         logSimEvent(SIM_END, _secTimer, "Simulation ended");
+                        closeLogger();
+                        generateReport(_martianColors, _font);
                     }
                         
                 break;
@@ -687,7 +709,7 @@ void simLoop(){
 
 
 int main(){
-    srand(time(0));
+    srand(time(NULL));
     setup();
     loadAssets();
     loadMazeTiles(_mazeTiles, _mazeImgTiny);

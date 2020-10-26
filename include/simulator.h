@@ -37,6 +37,7 @@ MazeTile _mazeTiles[MAZE_WIDTH][MAZE_HEIGHT];
 Options _options;
 
 DynamicArray _martians;
+DynamicArray _martianColors;
 DynamicArray _threads;
 DynamicArray _HUDfunctions;
 
@@ -50,6 +51,7 @@ static void *moveMartian(void *pMartianData);
 static void setDefaultOptions();
 static void setup();
 static void loadAssets();
+static ALLEGRO_COLOR* getRandomColor();
 static void insertMartian();
 static void createMartiansAutomaticMode();
 static void startThreads();

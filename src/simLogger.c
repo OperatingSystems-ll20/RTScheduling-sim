@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <consts.h>
 #include <simLogger.h>
 
 int initLogger(){
@@ -14,12 +15,12 @@ void closeLogger(){
 }
 
 void logSimEvent(const int pEventType, const int pSecTimer, const char *pEvent){
-    fprintf(_fileLog, "[0] [%d-%d] %s\n", pEventType, pSecTimer, pEvent);
+    fprintf(_fileLog, "[%d] [%d] %s\n", pEventType, pSecTimer, pEvent);
     fflush(_fileLog);
 }
 
 
 void logMartianEvent(const int pEventType, const int pMartianId, const int pSecTimer, const char *pEvent){
-    fprintf(_fileLog, "[1] [%d-%d-%d] %s\n", pEventType, pMartianId, pSecTimer, pEvent);
+    fprintf(_fileLog, "[%d] [%d-%d] %s\n", pEventType, pMartianId, pSecTimer, pEvent);
     fflush(_fileLog);
 }

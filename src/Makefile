@@ -11,7 +11,7 @@ CC = gcc
 LINK_LIBS = $(shell pkg-config allegro-5 allegro_font-5 allegro_image-5 allegro_primitives-5 --libs --cflags) \
 			-lpthread -lallegro_ttf -l$(LIB_NAME)
 
-SRC_FILES = $(APP_NAME).c schedule.c UI.c simLogger.c objects.c
+SRC_FILES = $(APP_NAME).c schedule.c UI.c simLogger.c objects.c reportGenerator.c
 
 buildStatic:
 		$(CC) -L $(LIB_COMP) -I $(INCLUDE_DIR) -I $(LIB_HEADER) $(SRC_FILES) -o $(BIN_DIR)/$(APP_NAME) $(LINK_LIBS)
