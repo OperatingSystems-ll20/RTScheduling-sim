@@ -351,6 +351,7 @@ static void setup(){
 
     _display = al_create_display(SCREEN_WIDHT, SCREEN_HEIGHT);
     checkInit(_display, "Display");
+    al_set_window_title(_display, "RTScheduling-Sim");
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
     al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
@@ -696,9 +697,9 @@ void simLoop(){
                 break;
 
             case ALLEGRO_EVENT_KEY_DOWN:
-                if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
-                    _options._exit = 1;
-                }
+                // if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
+                //     _options._exit = 1;
+                // }
                 if(event.keyboard.keycode == ALLEGRO_KEY_N){
                     if(!_scheduleError && _options._operationMode == MANUAL && !_options._stopSimulation)
                         _options._newMartianMenu = 1;
