@@ -18,6 +18,7 @@ int _martianAmount;
 int _outsideCounter;
 unsigned int _secTimer;
 unsigned int _ticks;
+int _scheduleError;
 
 
 /** ALLEGRO **/
@@ -59,6 +60,7 @@ static void createMartiansAutomaticMode();
 static void startThreads();
 static void stopAllThreads();
 static void cleanUp();
+static void checkUIEvents();
 static void render();
 void simLoop();
 

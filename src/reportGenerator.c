@@ -6,8 +6,8 @@
 
 static int BMP_HEIGHT = 100;
 static int LEFT_OFFSET = 20;
-static int SECOND_WIDTH = 50;
-static int SECOND_HEIGHT = 60;
+static int SECOND_WIDTH = 40;
+static int SECOND_HEIGHT = 50;
 
 
 static int getTimeSpan(FILE *pFP){
@@ -81,6 +81,10 @@ void createGrid(ALLEGRO_FONT *pFont){
     }
 }
 
+void saveReport(){
+    al_save_bitmap("report.png", _reportBMP);
+}
+
 
 ALLEGRO_BITMAP* generateReport(DynamicArray pColors, ALLEGRO_FONT *pFont){
     _fp = fopen(LOG_FILE_PATH, "r");
@@ -116,6 +120,5 @@ ALLEGRO_BITMAP* generateReport(DynamicArray pColors, ALLEGRO_FONT *pFont){
     }
     fclose(_fp);
     createGrid(pFont);
-    al_save_bitmap("/home/juanp1995/test.png", _reportBMP);
     return _reportBMP;
 }

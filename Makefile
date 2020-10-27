@@ -15,7 +15,6 @@ buildApp:
 		$(MAKE) $(MAKE_FLAGS) -C $(LIB_ARRAY_DIR) static
 		$(MAKE) $(MAKE_FLAGS) -C $(SRC_DIR) buildStatic
 
-
 clean:
 		@$(MAKE) $(MAKE_FLAGS) -C $(LIB_ARRAY_DIR) clean
 		@rm -r -f $(BIN_DIR)/$(APP_NAME)

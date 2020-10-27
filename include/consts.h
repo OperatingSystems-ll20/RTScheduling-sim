@@ -24,7 +24,7 @@ static const int MAZE_END_Y = 0;
 
 static const char *ABOUT_MANUAL_MODE = "* Manual mode allows to add new martians at any time";
 static const char *ABOUT_AUTOMATIC_MODE = "* Automatic mode starts the simulation"
-    "with a set number of martians";
+    " with a set number of martians";
 static const char *ADD_MARTIAN_INFO = "You can add new martians at any moment in"
     " the menu or by pressing the N key";
 static const char *STOP_SIM_WARNING = "Do you really want to stop the simulation now?";

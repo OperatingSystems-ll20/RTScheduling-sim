@@ -31,6 +31,7 @@ typedef struct {
     int _stopSimulation;
     int _showStopSimWarning;
     int _showReport;
+    int _saveReport;
     int _prepareAutomaticSim;
     int _prepareManualSim;
     int _errorPopUp;
@@ -69,6 +70,7 @@ typedef struct Martians{
     int arrivalTime;
     int executed; //EDF
     int periodCounter; //EDF
+    int flagExec; //RM fix
     pthread_cond_t cond;
 } Martian;
 

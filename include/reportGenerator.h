@@ -24,6 +24,7 @@ static void assignRandomColors();
 static void createBitmap();
 void createGrid(ALLEGRO_FONT *pFont);
 
+void saveReport();
 ALLEGRO_BITMAP* generateReport(DynamicArray pColors, ALLEGRO_FONT *pFont);
 
 

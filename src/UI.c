@@ -12,9 +12,8 @@ static struct nk_rect SIM_TIME_BOUNDS = {SIM_TIME_POS_X, SIM_TIME_HEIGHT, SIM_TI
 static struct nk_rect POPUP_BOUNDS = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
 static struct nk_rect STOP_SIM_BOUNDS = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 55, 220, 110};
 static struct nk_rect MANUAL_SELECTION_BOUNDS = {(SCREEN_WIDHT/2) - 130, (SCREEN_HEIGHT/2) - 125, 260, 250};
-static struct nk_rect POPUP_NEW_SIM_BOUNDS = {SCREEN_WIDHT/2 - 150, SCREEN_HEIGHT/2 - 75, 300, 150};
-static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 250, 400, 500};
-static struct nk_rect NEW_MARTIAN_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 125, 400, 250};
+static struct nk_rect POPUP_NEW_SIM_BOUNDS = {SCREEN_WIDHT/2 - 150, SCREEN_HEIGHT/2 - 80, 300, 160};
+static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 225, 400, 450};
 static struct nk_rect REPORT_WINDOW_BOUNDS = {SCREEN_WIDHT/2 - 275, SCREEN_HEIGHT/2 - 80, 550, 160};
 
 void setCustomStyle(struct nk_context *pNKcontext){
@@ -79,6 +78,16 @@ void drawMenu(struct nk_context *pNKcontext){
                     _options._pause = 1;
                 nk_label(pNKcontext, "P", NK_TEXT_RIGHT);
             }
+            if(_options._operationMode != UNDEFINED){
+                nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 2, ratio);
+                if (nk_menu_item_label(pNKcontext, "Stop", NK_TEXT_LEFT)){
+                    if(!_options._stopSimulation){
+                        _options._pause = 1;
+                        _options._showStopSimWarning = 1;
+                    }
+                }
+                nk_label(pNKcontext, "S", NK_TEXT_RIGHT);
+            }
 
             // nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 1, ratio);
             nk_layout_row_dynamic(pNKcontext, 25, 1);
@@ -113,13 +122,24 @@ void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int p
         nk_label(pNKcontext, "Simulation time:", NK_TEXT_CENTERED);
         nk_labelf(pNKcontext, NK_TEXT_CENTERED, "%.0f s" , pSecTimer + (1.0/REFRESH_RATE)*pTicks);
 
-        if(_options._stopSimulation){
+        if(_options._stopSimulation) {
             SIM_TIME_BOUNDS.h = 115;
             nk_layout_row_dynamic(pNKcontext, 10, 1);
-            nk_layout_row_dynamic(pNKcontext, 25, 1);
-            if (nk_button_label(pNKcontext, "Show report")) {
-                _options._showReport = 1;
+            if(_options._saveReport == 0){
+                nk_layout_row_dynamic(pNKcontext, 25, 2);
+                if (nk_button_label(pNKcontext, "Show report"))
+                    _options._showReport = 1;
+                if(nk_button_label(pNKcontext, "Save"))
+                    _options._saveReport = 1;
             }
+            else{
+                nk_layout_row_dynamic(pNKcontext, 25, 1);
+                if (nk_button_label(pNKcontext, "Show report"))
+                    _options._showReport = 1;
+            }
+
+
+            
         }
     }
     nk_end(pNKcontext);
@@ -192,24 +212,30 @@ void showReportWindow(struct nk_context *pNKcontext, struct nk_image pReportImg)
 
 void manualModeScheduleSelection(struct nk_context *pNKcontext) {
     if(_options._prepareManualSim) {
-        if (nk_begin(pNKcontext, "Manual operation mode", MANUAL_SELECTION_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE|
-            NK_WINDOW_MOVABLE)) 
+        if (nk_begin(pNKcontext, "Manual operation mode", MANUAL_SELECTION_BOUNDS, NK_WINDOW_BORDER|
+        NK_WINDOW_CLOSABLE|NK_WINDOW_MOVABLE|NK_WINDOW_NO_SCROLLBAR)) 
         {
 
             nk_layout_row_dynamic(pNKcontext, 25, 1);
             nk_label(pNKcontext, "Choose the scheduling algorithm", NK_TEXT_CENTERED);
 
-            nk_layout_row_dynamic(pNKcontext, 25, 2);
+            // nk_layout_row_dynamic(pNKcontext, 25, 2);
+            nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 2);
+            nk_layout_space_push(pNKcontext, nk_rect(40,0,60,25));
             _options._schedulingAlgorithm = nk_option_label(pNKcontext, "RM",
                 _options._schedulingAlgorithm == RM) ? RM : _options._schedulingAlgorithm;
+            nk_layout_space_push(pNKcontext, nk_rect(125,0,40,25));
             _options._schedulingAlgorithm = nk_option_label(pNKcontext, "EDF",
                 _options._schedulingAlgorithm == EDF) ? EDF : _options._schedulingAlgorithm;
+            nk_layout_space_end(pNKcontext);
 
             nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
             nk_layout_space_push(pNKcontext, nk_rect(60,0,130,25));
             if (nk_button_label(pNKcontext, "Start simulation")) {
+                _options._operationMode = MANUAL;
                 _options._startSimulation = 1;
                 _options._showSimTime = 1;
+                _options._showHUD = 1;
                 _options._prepareManualSim = 0;
             }
             nk_layout_space_end(pNKcontext);
@@ -234,8 +260,7 @@ void newSimMenu(struct nk_context *pNKcontext){
 
             nk_layout_row_dynamic(pNKcontext, 25, 2);
             if (nk_button_label(pNKcontext, "Manual")) {
-                _options._manualOpMenu = 1;
-                _options._operationMode = MANUAL;
+                // _options._manualOpMenu = 1;
                 _options._prepareManualSim = 1;
                 _options._newSimulationPopUp = 0;
             }
@@ -244,12 +269,13 @@ void newSimMenu(struct nk_context *pNKcontext){
                 _options._newSimulationPopUp = 0;
             }
 
+            nk_layout_row_dynamic(pNKcontext, 10, 1);
             nk_layout_row_dynamic(pNKcontext, 25, 1);
             bounds = nk_widget_bounds(pNKcontext);
             nk_label(pNKcontext, "About modes", NK_TEXT_RIGHT);
             if (nk_input_is_mouse_hovering_rect(in, bounds)){
-                nk_tooltip_begin(pNKcontext, 200);
-                nk_layout_row_static(pNKcontext, 50, 200, 1);
+                nk_tooltip_begin(pNKcontext, 230);
+                nk_layout_row_static(pNKcontext, 55, 200, 1);
                 nk_label_wrap(pNKcontext, ABOUT_MANUAL_MODE);
                 nk_label_wrap(pNKcontext, ABOUT_AUTOMATIC_MODE);
                 nk_tooltip_end(pNKcontext);
@@ -306,13 +332,16 @@ void automaticOpMenu(struct nk_context *pNKcontext){
                     nk_group_end(pNKcontext);
                 }
 
-                nk_layout_row_dynamic(pNKcontext, 25, 3);
+                nk_layout_row_dynamic(pNKcontext, 10, 3); //Space
+                float ratio[] = {0.5f, 0.25f, 0.25f};
+                nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 3, ratio);
                 nk_label(pNKcontext, "Scheduling algorithm:", NK_TEXT_LEFT);
                 _options._schedulingAlgorithm = nk_option_label(pNKcontext, "RM",
                     _options._schedulingAlgorithm == RM) ? RM : _options._schedulingAlgorithm;
                 _options._schedulingAlgorithm = nk_option_label(pNKcontext, "EDF",
                     _options._schedulingAlgorithm == EDF) ? EDF : _options._schedulingAlgorithm;
 
+                nk_layout_row_dynamic(pNKcontext, 10, 1); //Space
                 nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
                 nk_layout_space_push(pNKcontext, nk_rect(220,0,130,25));
                 if (nk_button_label(pNKcontext, "Start simulation")) {
@@ -332,24 +361,23 @@ void automaticOpMenu(struct nk_context *pNKcontext){
 
 void addMartianMenu(struct nk_context *pNKcontext){
     if(_options._newMartianMenu) {
-        if (nk_begin(pNKcontext, "New martian", NEW_MARTIAN_MENU_BOUNDS, NK_WINDOW_BORDER|
-            NK_WINDOW_CLOSABLE|NK_WINDOW_MOVABLE)) 
+        if (nk_begin(pNKcontext, "New martian", 
+            nk_rect(10, _mazeBounds.y0, _mazeBounds.x0-20, 190), 
+            NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE/*|NK_WINDOW_MOVABLE*/)) 
         {
-            // static int martianCounter = 0;
             static int energyProp = 2;
             static int periodProp = 6;
-            nk_layout_row_begin(pNKcontext, NK_STATIC, 25, 3);
-            nk_layout_row_push(pNKcontext, 100);
-            nk_label(pNKcontext, "New martian:", NK_TEXT_LEFT);
-            nk_layout_row_push(pNKcontext, 130);
+            nk_layout_row_dynamic(pNKcontext, 25, 1);
+            nk_label(pNKcontext, "New martian:", NK_TEXT_CENTERED);
             nk_property_int(pNKcontext, "#Energy:", 1, &energyProp, 20, 1, 1);
-            nk_layout_row_push(pNKcontext, 130);
             nk_property_int(pNKcontext, "#Period:", 1, &periodProp, 40, 1, 1);
             if(periodProp <= energyProp) periodProp = energyProp;
-            nk_layout_row_end(pNKcontext);
 
+            nk_layout_row_dynamic(pNKcontext, 10, 1); //Space
             nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 1);
-            nk_layout_space_push(pNKcontext, nk_rect(300,0,60,25));
+            struct nk_rect r = nk_layout_space_bounds(pNKcontext);
+            nk_layout_space_push(pNKcontext, nk_rect((r.w/2)-30,0,60,25));
+            
             if (nk_button_label(pNKcontext, "Add")) {
                     _options._newMartians[0].energy = energyProp;
                     _options._newMartians[0].period = periodProp;
