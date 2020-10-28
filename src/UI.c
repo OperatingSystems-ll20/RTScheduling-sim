@@ -7,6 +7,7 @@
 #include <nuklear/nuklear.h>
 #include <nuklear/nuklear_allegro5.h>
 
+/* Size bounds of the widgets */
 static struct nk_rect MENU_BOUNDS = {0, 0, SCREEN_WIDHT, 40};
 static struct nk_rect SIM_TIME_BOUNDS = {SIM_TIME_POS_X, SIM_TIME_HEIGHT, SIM_TIME_WIDTH, SIM_TIME_HEIGHT};
 static struct nk_rect POPUP_BOUNDS = {SCREEN_WIDHT/2 - 110, SCREEN_HEIGHT/2 - 45, 220, 90};
@@ -16,6 +17,11 @@ static struct nk_rect POPUP_NEW_SIM_BOUNDS = {SCREEN_WIDHT/2 - 150, SCREEN_HEIGH
 static struct nk_rect AUTOMATIC_OP_MENU_BOUNDS = {SCREEN_WIDHT/2 - 200, SCREEN_HEIGHT/2 - 225, 400, 450};
 static struct nk_rect REPORT_WINDOW_BOUNDS = {SCREEN_WIDHT/2 - 275, SCREEN_HEIGHT/2 - 80, 550, 160};
 
+/**
+ * @brief Sets a custom set of color for the Nuklear UI
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void setCustomStyle(struct nk_context *pNKcontext){
     struct nk_color table[NK_COLOR_COUNT];
     table[NK_COLOR_TEXT] = nk_rgba(210, 210, 210, 255);
@@ -34,9 +40,6 @@ void setCustomStyle(struct nk_context *pNKcontext){
     table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(95, 155, 252, 245);
     table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(95, 155, 252, 255);
     table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(95, 155, 252, 255);
-    // table[NK_COLOR_SLIDER_CURSOR] = nk_rgba(48, 83, 111, 245);
-    // table[NK_COLOR_SLIDER_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
-    // table[NK_COLOR_SLIDER_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
     table[NK_COLOR_PROPERTY] = nk_rgba(50, 58, 61, 255);
     table[NK_COLOR_EDIT] = nk_rgba(50, 58, 61, 225);
     table[NK_COLOR_EDIT_CURSOR] = nk_rgba(210, 210, 210, 255);
@@ -52,6 +55,11 @@ void setCustomStyle(struct nk_context *pNKcontext){
     nk_style_from_table(pNKcontext, table);
 }
 
+/**
+ * @brief Draws the menu bar on top of the window
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void drawMenu(struct nk_context *pNKcontext){
     if (nk_begin(pNKcontext, "Menu", MENU_BOUNDS, NK_WINDOW_BORDER)) {
 
@@ -89,10 +97,7 @@ void drawMenu(struct nk_context *pNKcontext){
                 nk_label(pNKcontext, "S", NK_TEXT_RIGHT);
             }
 
-            // nk_layout_row(pNKcontext, NK_DYNAMIC, 25, 1, ratio);
             nk_layout_row_dynamic(pNKcontext, 25, 1);
-            // if (nk_menu_item_label(pNKcontext, "Start", NK_TEXT_LEFT))
-            //     _options._startSimulation = 1;
             if (nk_menu_item_label(pNKcontext, "Exit", NK_TEXT_LEFT))
                 _options._exit = 1;
             nk_menu_end(pNKcontext);
@@ -116,6 +121,14 @@ void drawMenu(struct nk_context *pNKcontext){
     nk_end(pNKcontext);
 }
 
+
+/**
+ * @brief Draws the simulation time on screen and the buttons for show and save the report
+ * 
+ * @param pNKcontext Struct nk_context
+ * @param pSecTimer  Current second timer
+ * @param pTicks     Current tick count 
+ */
 void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int pTicks){
     if (nk_begin(pNKcontext, "Simulation Time", SIM_TIME_BOUNDS, 0)) {
         nk_layout_row_dynamic(pNKcontext, 25, 1);
@@ -137,14 +150,20 @@ void showSimTime(struct nk_context *pNKcontext, const int pSecTimer, const int p
                 if (nk_button_label(pNKcontext, "Show report"))
                     _options._showReport = 1;
             }
-
-
-            
         }
     }
     nk_end(pNKcontext);
 }
 
+/**
+ * @brief Draws a popup on screen
+ * 
+ * @param pNKcontext  Struct nk_context
+ * @param pTitle      Title of the popup window (invisible, used only for id)
+ * @param pOption     Option toggle by popup button
+ * @param pMessage    Message of the popup
+ * @param pButtonTxt  Text of the button
+ */
 void showPopUp(struct nk_context *pNKcontext, const char *pTitle, 
                 int *pOption, const char *pMessage, const char *pButtonTxt)
 {
@@ -169,6 +188,11 @@ void showPopUp(struct nk_context *pNKcontext, const char *pTitle,
     }
 }
 
+/**
+ * @brief Draws a popup on screen warning about stopping simulation
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void stopSimMenu(struct nk_context *pNKcontext){
     if(_options._showStopSimWarning) {
         if (nk_begin(pNKcontext, "Stop simulation", nk_rect(0, 0, 0, 0), NK_WINDOW_BORDER)) {
@@ -196,9 +220,15 @@ void stopSimMenu(struct nk_context *pNKcontext){
     }
 }
 
+
+/**
+ * @brief Draws a widget on screen showing the report image
+ * 
+ * @param pNKcontext Struct nk_context
+ * @param pReportImg Report image (Allegro bitmap)
+ */
 void showReportWindow(struct nk_context *pNKcontext, struct nk_image pReportImg){
     if(_options._showReport) {
-        // if(pReportImg.w < 525) REPORT_WINDOW_BOUNDS.w = pReportImg.w+25;
         if (nk_begin(pNKcontext, "Report", REPORT_WINDOW_BOUNDS, NK_WINDOW_CLOSABLE|NK_WINDOW_BORDER
             |NK_WINDOW_MOVABLE)) 
         {
@@ -210,6 +240,13 @@ void showReportWindow(struct nk_context *pNKcontext, struct nk_image pReportImg)
     }
 }
 
+
+/**
+ * @brief Draws the widget with the menu for the selection of scheduling algorithm
+ *        when manual mode is chosen
+ * 
+ * @param pNKcontext 
+ */
 void manualModeScheduleSelection(struct nk_context *pNKcontext) {
     if(_options._prepareManualSim) {
         if (nk_begin(pNKcontext, "Manual operation mode", MANUAL_SELECTION_BOUNDS, NK_WINDOW_BORDER|
@@ -219,7 +256,6 @@ void manualModeScheduleSelection(struct nk_context *pNKcontext) {
             nk_layout_row_dynamic(pNKcontext, 25, 1);
             nk_label(pNKcontext, "Choose the scheduling algorithm", NK_TEXT_CENTERED);
 
-            // nk_layout_row_dynamic(pNKcontext, 25, 2);
             nk_layout_space_begin(pNKcontext, NK_STATIC, 25, 2);
             nk_layout_space_push(pNKcontext, nk_rect(40,0,60,25));
             _options._schedulingAlgorithm = nk_option_label(pNKcontext, "RM",
@@ -249,6 +285,12 @@ void manualModeScheduleSelection(struct nk_context *pNKcontext) {
     }
 }
 
+
+/**
+ * @brief Draws a widget with the menu for selection of operation mode
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void newSimMenu(struct nk_context *pNKcontext){
     if(_options._newSimulationPopUp) {
         if (nk_begin(pNKcontext, "New Simulation", POPUP_NEW_SIM_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE)) {
@@ -286,6 +328,13 @@ void newSimMenu(struct nk_context *pNKcontext){
     }
 }
 
+
+/**
+ * @brief Draws a widget with the menu for automatic mode, allowing the addition of martians
+ *        and the selection of the scheduling algorithm
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void automaticOpMenu(struct nk_context *pNKcontext){
     if(_options._automaticOpMenu) {
         if (nk_begin(pNKcontext, "Automatic operation mode", AUTOMATIC_OP_MENU_BOUNDS, NK_WINDOW_BORDER|NK_WINDOW_CLOSABLE|
@@ -316,10 +365,8 @@ void automaticOpMenu(struct nk_context *pNKcontext){
             nk_layout_space_end(pNKcontext);
 
             if(martianCounter > 0) {
-                // nk_layout_row_static(pNKcontext, 300, 370, 1);
                 nk_layout_row_dynamic(pNKcontext, 250, 1);
                 if (nk_group_begin(pNKcontext, "Martian List", 0)) {
-                    // nk_layout_row_static(pNKcontext, 25, 100, 3);
                     nk_layout_row_dynamic(pNKcontext, 25, 3);
                     nk_label(pNKcontext, "Martian", NK_TEXT_CENTERED);
                     nk_label(pNKcontext, "Energy", NK_TEXT_CENTERED);
@@ -359,6 +406,12 @@ void automaticOpMenu(struct nk_context *pNKcontext){
     }
 }
 
+
+/**
+ * @brief Draws a widget with the menu for adding new martians in the manual operation mode
+ * 
+ * @param pNKcontext Struct nk_context
+ */
 void addMartianMenu(struct nk_context *pNKcontext){
     if(_options._newMartianMenu) {
         if (nk_begin(pNKcontext, "New martian", 
@@ -391,6 +444,13 @@ void addMartianMenu(struct nk_context *pNKcontext){
     }
 }
 
+
+/**
+ * @brief Draws the information of one martian on screen
+ * 
+ * @param pNKcontext Struct nk_context
+ * @param pMartian   Structure of type Martian holding all its data
+ */
 void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     int MYtitlebar = nk_true;
     float ratio1[] = {0.3f, 0.7f};
@@ -405,11 +465,21 @@ void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
         nk_layout_row(pNKcontext, NK_DYNAMIC, 30, 2, ratio1);
         nk_labelf(pNKcontext, NK_TEXT_LEFT, "Energy: %d" , pMartian->currentEnergy);
         nk_progress(pNKcontext, &pMartian->currentEnergy, pMartian->maxEnergy, NK_FIXED);
+        nk_layout_row(pNKcontext, NK_DYNAMIC, 30, 2, ratio1);
+        nk_labelf(pNKcontext, NK_TEXT_LEFT, "Period: %d" , pMartian->period);
 
         nk_tree_pop(pNKcontext);
     }
 }
 
+
+/**
+ * @brief Draws the widget where the information of all martian is displayed
+ * 
+ * @param pNKcontext     Struct nk_context
+ * @param pMartians      DynamicArray of Martian structures
+ * @param pHUDfunctions  DynamicArray of function pointer
+ */
 void drawMartianHUD(struct nk_context *pNKcontext, DynamicArray *pMartians, DynamicArray *pHUDfunctions){
     if (nk_begin(pNKcontext, "Martians status",
         nk_rect(_mazeBounds.x1+10, _mazeBounds.y0, SCREEN_WIDHT - _mazeBounds.x1-20, MAZE_HEIGHT-10),
