@@ -14,6 +14,7 @@ int rm_checkSchedulingError(){
     int result = 0;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if( (martian->ready && martian->currentEnergy != 0) || 
             (martian->flagExec == 0 && martian->periodCounter > 1) ){
             result = 1;
@@ -34,6 +35,7 @@ int rm_getShortestPeriod(){
     int candidate = -1;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if((!martian->ready && martian->currentEnergy == 0)){
             continue;
         }
@@ -70,6 +72,7 @@ int rm_nextShortestPeriodIgnore(const int pIndexToIgnore){
     int first = 1;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if(i == pIndexToIgnore) continue;
 
         else{
@@ -101,6 +104,7 @@ int rm_nextShortestPeriodIgnore(const int pIndexToIgnore){
  */
 int rm_checkMartianState(const int pIndex){
     Martian *martian = (Martian*)_martians.array[pIndex];
+    if(martian->martianState == DONE) return IDLE;
     if(martian->ready && martian->currentEnergy == 0)
         return READY; //Martian is ready
     else if(!martian->ready && martian->currentEnergy != 0)
@@ -150,6 +154,7 @@ int edf_checkSchedulingError(){
     int result = 0;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if( martian->ready && (martian->currentEnergy != 0 || martian->executed == 0) ) {
             result = 1;
             break;
@@ -170,6 +175,7 @@ int edf_getShortestExecution(int pSecTimer){
     int candidate = -1;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if((!martian->ready && martian->currentEnergy == 0)){ //Ignore idle
             continue;
         }
@@ -212,6 +218,7 @@ int edf_nextShortestExecutionIgnore(const int pIndexToIgnore, int pSecTimer){
     int first = 1;
     for(int i=0; i<_martianAmount; i++){
         Martian *martian = (Martian*)_martians.array[i];
+        if(martian->martianState == DONE) continue;
         if((i == pIndexToIgnore) || (!martian->ready && martian->currentEnergy == 0))
             continue;
 
@@ -356,6 +363,7 @@ void allowExecution(Martian *pNextMartian, const int pCurrentState, const int pN
  */
 void updateThreadTimers(){
     for(int i=0; i<_martianAmount; i++){
+        if(((Martian*)_martians.array[i])->martianState == DONE) continue;
         ((Martian*)_martians.array[i])->update = 1;
         while(((Martian*)_martians.array[i])->update == 1); //Wait until thread is updated
     }

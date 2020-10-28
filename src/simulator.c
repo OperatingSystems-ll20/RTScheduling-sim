@@ -42,6 +42,7 @@ static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY){
     for(int i=0; i<_martianAmount; i++){
         if(i == pMartian->id) continue; //Skip collision with itself
         Martian *other = (Martian*)_martians.array[i];
+        if(other->martianState == DONE) continue;
 
         switch(pMartian->direction){
             case LEFT:
@@ -108,6 +109,144 @@ static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY){
     return collision;
 }
 
+/**
+ * @brief Calculates the new direction of the martian when a collision is detected
+ * 
+ * @param pMartian Martian in execution
+ */
+static void checkNewDirection(Martian *pMartian){
+    int relX0, relX1, relY0, relY1;
+    int newX = pMartian->posX;
+    int newY = pMartian->posY;
+    switch(pMartian->direction){
+        case LEFT:
+        case RIGHT:
+            newY = pMartian->posY - MARTIAN_DEFAULT_SPEED;
+            relX0 = newX/TILE_SIZE;
+            relY0 = newY/TILE_SIZE;
+            if(_mazeTiles[relX0][relY0].type == PATH) pMartian->direction = UP;
+            else{
+                newY = pMartian->posY + MARTIAN_DEFAULT_SPEED;
+                relY1 = (newY+MARTIAN_SIZE-1)/TILE_SIZE;
+                if(_mazeTiles[relX0][relY1].type == PATH) pMartian->direction = DOWN;
+            }
+            break;
+
+        case UP:
+        case DOWN:
+            newX = pMartian->posX - MARTIAN_DEFAULT_SPEED;
+            if(newX < 0) {
+                pMartian->direction = RIGHT;
+                break;
+            }
+            relX0 = newX/TILE_SIZE;
+            relY0 = newY/TILE_SIZE;
+            if(_mazeTiles[relX0][relY0].type == PATH) pMartian->direction = LEFT;
+            else{
+                newX = pMartian->posX + MARTIAN_DEFAULT_SPEED;
+                relX1 = (newX+MARTIAN_SIZE-1)/TILE_SIZE;
+                if(_mazeTiles[relX1][relY0].type == PATH) pMartian->direction = RIGHT;
+            }
+            break;
+    }
+}
+
+/**
+ * @brief When no collision is detected, checks if there is another available path to take
+ * 
+ * @param pMartian Martian in execution
+ * @param pNewX    New X position
+ * @param pNewY    New Y position
+ */
+static void checkAlternatePath(Martian *pMartian, int *pNewX, int *pNewY){
+    int relX0 = *pNewX/TILE_SIZE;
+    int relY0 = *pNewY/TILE_SIZE;
+    int relX1 = (*pNewX+MARTIAN_SIZE-1)/TILE_SIZE; 
+    int relY1 = (*pNewY+MARTIAN_SIZE-1)/TILE_SIZE;
+    bool validMove;
+
+    switch(pMartian->direction){
+        case LEFT: //Check up and down
+            if(relY1 == relY0 && relX0 == relX1){
+                if( (*pNewX > ((relX0)*TILE_SIZE)) && ( (*pNewX+MARTIAN_SIZE)<((relX0+1)*TILE_SIZE) ) ){
+                    if(_mazeTiles[relX0][relY0-1].type == PATH){
+                        if( ( *pNewY - (relY0*TILE_SIZE) ) < MARTIAN_DEFAULT_SPEED ){
+                            if((*pNewX+MARTIAN_SIZE) < ((relX0*TILE_SIZE)+TILE_SIZE)) 
+                                *pNewX += ((relX0+1)*TILE_SIZE) - (*pNewX + MARTIAN_SIZE);
+                            pMartian->direction = UP;
+                        }
+                    }
+                    else if(_mazeTiles[relX0][relY0+1].type == PATH && pMartian->direction == LEFT){
+                        if( ( ((relY0+1)*TILE_SIZE) - (*pNewY+MARTIAN_SIZE) ) < MARTIAN_DEFAULT_SPEED ){
+                            if((*pNewX+MARTIAN_SIZE) < ((relX0*TILE_SIZE)+TILE_SIZE))
+                                *pNewX += ((relX0+1)*TILE_SIZE) - (*pNewX + MARTIAN_SIZE);
+                            pMartian->direction = DOWN;
+                        }
+                    }
+                }
+            }
+            break;
+
+        case RIGHT: //Check up and down
+            if(relY1 == relY0 && relX0 == relX1){
+                if( (*pNewX > ((relX0*TILE_SIZE))) && ( (*pNewX+MARTIAN_SIZE)<((relX0+1)*TILE_SIZE) ) ){
+                    if(_mazeTiles[relX0][relY0-1].type == PATH){
+                        if( ( *pNewY - (relY0*TILE_SIZE) ) < MARTIAN_DEFAULT_SPEED ){
+                            if(*pNewX > (relX0*TILE_SIZE)) *pNewX -= (*pNewX - (relX0*TILE_SIZE));
+                            pMartian->direction = UP;
+                        }
+                    }
+                    else if(_mazeTiles[relX0][relY0+1].type == PATH && pMartian->direction == RIGHT) {
+                        if( ( ((relY0+1)*TILE_SIZE) - (*pNewY+MARTIAN_SIZE) ) < MARTIAN_DEFAULT_SPEED ){
+                            if(*pNewX > (relX0*TILE_SIZE)) *pNewX -= (*pNewX - (relX0*TILE_SIZE));
+                            pMartian->direction = DOWN;
+                        }
+                    }   
+                }
+            }
+            break;
+
+        case UP: //Check left and right
+            if(relY1 == relY0 && relX0 == relX1){
+                if( (*pNewY > ((relY0)*TILE_SIZE)) && ( (*pNewY+MARTIAN_SIZE)<(((relY0+1)*TILE_SIZE)) ) ){
+                    if(_mazeTiles[relX0-1][relY0].type == PATH){
+                        if( (*pNewX - relX0*TILE_SIZE) < MARTIAN_DEFAULT_SPEED ){
+                            if((*pNewY+MARTIAN_SIZE) < (relY0+1)*TILE_SIZE)
+                                *pNewY += ((relY0+1)*TILE_SIZE) - (*pNewY+MARTIAN_SIZE);
+                            pMartian->direction = LEFT;
+                        }
+                    } 
+                    else if(_mazeTiles[relX0+1][relY0].type == PATH && pMartian->direction == UP){
+                        if( (((relX0+1)*TILE_SIZE) - (*pNewX+MARTIAN_SIZE)) < MARTIAN_DEFAULT_SPEED ){
+                            if((*pNewY+MARTIAN_SIZE) < (relY0+1)*TILE_SIZE)
+                                *pNewY += ((relY0+1)*TILE_SIZE) - (*pNewY+MARTIAN_SIZE);
+                            pMartian->direction = RIGHT;
+                        }
+                    }  
+                }
+            }
+            break;
+
+        case DOWN: //Check left and right
+            if(relY1 == relY0 && relX0 == relX1){
+                if( (*pNewY > ((relY0)*TILE_SIZE)) && ( (*pNewY)<(((relY0+1)*TILE_SIZE)) ) ){
+                    if(_mazeTiles[relX0-1][relY0].type == PATH) {
+                        if( (*pNewX - ((relX0*TILE_SIZE))) < MARTIAN_DEFAULT_SPEED ){
+                            if(*pNewY > relY0*TILE_SIZE) *pNewY -= (*pNewY - (relY0*TILE_SIZE));
+                            pMartian->direction = LEFT;
+                        }
+                    }
+                    else if(_mazeTiles[relX0+1][relY0].type == PATH && pMartian->direction == DOWN) {
+                        if( (((relX0+1)*TILE_SIZE) - (*pNewX+MARTIAN_SIZE)) < MARTIAN_DEFAULT_SPEED ){
+                            if(*pNewY > relY0*TILE_SIZE) *pNewY -= (*pNewY - (relY0*TILE_SIZE));
+                            pMartian->direction = RIGHT;
+                        }
+                    }  
+                }
+            }
+            break;
+    }
+}
 
 /**
  * @brief Calculates the new position of a martian based on its current direction,
@@ -145,14 +284,14 @@ static bool checkMove(Martian *pMartian){
             relY0 = newY/TILE_SIZE;
             relY1 = (newY+MARTIAN_SIZE-1)/TILE_SIZE;
             if(_mazeTiles[relX0][relY0].type == WALL || _mazeTiles[relX0][relY1].type == WALL) {
-                if(pMartian->posX != (relX0*TILE_SIZE)+TILE_SIZE){
+                if(pMartian->posX > (relX0*TILE_SIZE)+TILE_SIZE){
                     newX = pMartian->posX - (pMartian->posX - ((relX0*TILE_SIZE) + TILE_SIZE));
                     validMove = true;
                 }
                 else validMove = false;
             }
             else if((newX + _mazeBounds.x0) < _mazeBounds.x0){
-                if(pMartian->posX != (relX0*TILE_SIZE)){
+                if(pMartian->posX > (relX0*TILE_SIZE)){
                     newX = pMartian->posX - (pMartian->posX - (relX0*TILE_SIZE));
                     validMove = true;
                 }
@@ -165,18 +304,18 @@ static bool checkMove(Martian *pMartian){
         case RIGHT:
             newX = pMartian->posX + _options._martianSpeed;
             newY = pMartian->posY;
-            relX1 = (newX + MARTIAN_SIZE)/TILE_SIZE;
+            relX1 = (newX + MARTIAN_SIZE-1)/TILE_SIZE;
             relY0 = newY/TILE_SIZE;
             relY1 = (newY+MARTIAN_SIZE-1)/TILE_SIZE;
             if(_mazeTiles[relX1][relY0].type == WALL || _mazeTiles[relX1][relY1].type == WALL) {
-                if((pMartian->posX + MARTIAN_SIZE) != (relX1*TILE_SIZE)){
+                if((pMartian->posX + MARTIAN_SIZE) < (relX1*TILE_SIZE)){
                     newX = pMartian->posX + ((relX1*TILE_SIZE) - (pMartian->posX + MARTIAN_SIZE));
                     validMove = true;
                 }
                 else validMove = false;
             }
             else if((newX+MARTIAN_SIZE+_mazeBounds.x0) > _mazeBounds.x1){
-                if((pMartian->posX + MARTIAN_SIZE) != (relX1*TILE_SIZE)){
+                if((pMartian->posX + MARTIAN_SIZE) < (relX1*TILE_SIZE)){
                     newX = pMartian->posX + ((relX1*TILE_SIZE) - (pMartian->posX + MARTIAN_SIZE));
                     validMove = true;
                 }
@@ -193,18 +332,20 @@ static bool checkMove(Martian *pMartian){
             relY0 = newY/TILE_SIZE;
             relX1 = (newX+MARTIAN_SIZE-1)/TILE_SIZE;
             if(_mazeTiles[relX0][relY0].type == WALL || _mazeTiles[relX1][relY0].type == WALL) {
-                if(pMartian->posY != (relY0*TILE_SIZE)+TILE_SIZE){
+                if(pMartian->posY > (relY0*TILE_SIZE)+TILE_SIZE){
                     newY = pMartian->posY - (pMartian->posY - ((relY0*TILE_SIZE) + TILE_SIZE));
                     validMove = true;
                 }
                 else  validMove = false;
             }
             else if((newY+_mazeBounds.y0) < _mazeBounds.y0){
-                if(pMartian->posY != (relY0*TILE_SIZE)){
-                    newY = pMartian->posY - (pMartian->posY - (relY0*TILE_SIZE));
-                    validMove = true;
-                }
-                else validMove = false;
+                pMartian->martianState = DONE;
+                validMove = true;
+                // if(pMartian->posY != (relY0*TILE_SIZE)){
+                //     newY = pMartian->posY - (pMartian->posY - (relY0*TILE_SIZE));
+                //     validMove = true;
+                // }
+                // else validMove = false;
             }
             else if(checkMartianCollision(pMartian, &newX, &newY)) validMove = false;
             else validMove = true;
@@ -214,17 +355,17 @@ static bool checkMove(Martian *pMartian){
             newX = pMartian->posX;
             newY = pMartian->posY + _options._martianSpeed;
             relX0 = newX/TILE_SIZE;
-            relY1 = (newY + MARTIAN_SIZE)/TILE_SIZE;
+            relY1 = (newY + MARTIAN_SIZE-1)/TILE_SIZE;
             relX1 = (newX+MARTIAN_SIZE-1)/TILE_SIZE;
             if(_mazeTiles[relX0][relY1].type == WALL || _mazeTiles[relX1][relY1].type == WALL) {
-                if((pMartian->posY + MARTIAN_SIZE) != relY1*TILE_SIZE){
+                if((pMartian->posY + MARTIAN_SIZE) < relY1*TILE_SIZE){
                     newY = pMartian->posY + ((relY1*TILE_SIZE) - (pMartian->posY + MARTIAN_SIZE));
                     validMove = true;
                 }
                 else validMove = false;
             }
             else if((newY+MARTIAN_SIZE+_mazeBounds.y0) > _mazeBounds.y1){
-                if((pMartian->posY + MARTIAN_SIZE) != relY1*TILE_SIZE){
+                if((pMartian->posY + MARTIAN_SIZE) < relY1*TILE_SIZE){
                     newY = pMartian->posY + (((relY1*TILE_SIZE)+TILE_SIZE) - (pMartian->posY + MARTIAN_SIZE));
                     validMove = true;
                 }
@@ -236,6 +377,7 @@ static bool checkMove(Martian *pMartian){
     }
 
     if(validMove){
+        checkAlternatePath(pMartian, &newX, &newY);
         pMartian->posX = newX;
         pMartian->posY = newY;
     }
@@ -265,12 +407,10 @@ static void *moveMartian(void *pMartianData){
             pthread_mutex_lock(&_mutex);
             martian->ready = 0;
             martian->doWork = 0;
-            // printf("martian %s at counter = %d\n", martian->title, martian->counter);
             if(martian->currentEnergy == martian->maxEnergy && martian->counter == 1){
                 martian->executed = 0; //For EDF
                 prevSecond = _secTimer;
                 logMartianEvent(MARTIAN_START, martian->id, _secTimer, "Martian started");
-                // printf("Start of %s at sec=%d\n", martian->title, _secTimer);
             }
 
             if(martian->counter == REFRESH_RATE ) {
@@ -279,30 +419,29 @@ static void *moveMartian(void *pMartianData){
                 if(martian->currentEnergy == 0){
                     martian->executed = 1; //For EDF
                     logMartianEvent(MARTIAN_END, martian->id, _secTimer, "Martian finished");
-                    // printf("------ %s finished at sec=%d\n", martian->title, _secTimer);
                     pthread_mutex_unlock(&_mutex);
                     continue;
                 }
                 else{
                     if(!checkMove(martian)){
-                        martian->direction = (rand() % (3 - 0 + 1)) + 0;
+                        checkNewDirection(martian);
+                        // martian->direction = (rand() % (3 - 0 + 1)) + 0;
                     }
                     
                     prevSecond = _secTimer;
                     logMartianEvent(MARTIAN_CONTINUE, martian->id, _secTimer, "Martian continue");
-                    // printf("--- %s continue at sec=%d\n", martian->title, _secTimer);
                     pthread_mutex_unlock(&_mutex);
                     continue;
                 }
             }
 
             if(!checkMove(martian)){
-                martian->direction = (rand() % (3 - 0 + 1)) + 0;
+                checkNewDirection(martian);
+                // martian->direction = (rand() % (3 - 0 + 1)) + 0;
             }
             if(prevSecond != _secTimer){
                 prevSecond = _secTimer;
                 logMartianEvent(MARTIAN_CONTINUE, martian->id, _secTimer, "Martian continue");
-                // printf("--- %s continue at sec=%d\n", martian->title, _secTimer);
             }
                 
             if(first){
@@ -323,7 +462,6 @@ static void *moveMartian(void *pMartianData){
                     martian->ready = 1;
                     martian->periodCounter++;
                     logMartianEvent(MARTIAN_TIMER, martian->id, _secTimer, "Martian timer");
-                    // printf("Timer of %s\n", martian->title);
                 }
             }
           prevResult = result;
@@ -353,7 +491,9 @@ static void setDefaultOptions(){
     _options._pause = 0;
     _options._startSimulation = 0;
     _options._stopSimulation = 0;
+    _options._simulationFinished = 0;
     _options._showStopSimWarning = 0;
+    _options._showSuccessPopUp = 0;
     _options._showReport = 0;
     _options._saveReport = 0;
     _options._prepareAutomaticSim = 0;
@@ -657,6 +797,17 @@ static void checkUIEvents(){
         }
     }
 
+    if(_options._showSuccessPopUp){
+        showPopUp(_NKcontext, "Finish", &_options._showSuccessPopUp, "Simulation ended successfully", "Ok");
+        if(_reportImg == NULL){
+            logSimEvent(SIM_END, _secTimer, "Simulation ended");
+            closeLogger();
+            stopAllThreads();
+            createReportImage();
+        }
+        _options._stopSimulation = 1;
+    }
+
     if(_options._showReport && !_options._errorPopUp && _options._stopSimulation){
         if(_reportImg == NULL){
             createReportImage();
@@ -684,6 +835,7 @@ static void render(){
         if(_options._showMartians){
             for(int i=0; i<_martianAmount; i++){
                 Martian *martian = (Martian*)_martians.array[i];
+                if(martian->martianState == DONE) continue;
                 ALLEGRO_COLOR *color = ((ALLEGRO_COLOR*)_martianColors.array[i]);
                 al_draw_filled_rectangle(martian->posX + _mazeBounds.x0,
                     martian->posY + _mazeBounds.y0,
@@ -724,6 +876,7 @@ void simLoop(){
     int executeSchedule = 1;
     int firstExecution = 1;
     int firstSimLoop = 1;
+    int doneCounter = 0;
 
     al_start_timer(_timer);
     while(1){
@@ -753,7 +906,7 @@ void simLoop(){
 
                 //Advance second and insert new martian (if needed)
                 if(!_scheduleError && !_options._pause && _options._startSimulation 
-                    && !_options._stopSimulation && _options._showSimTime)
+                    && !_options._stopSimulation && !_options._simulationFinished && _options._showSimTime)
                 {
                     if(_ticks == REFRESH_RATE-1){// 1 second
                         _secTimer++;
@@ -770,7 +923,7 @@ void simLoop(){
                 }
 
                 if(executeSchedule && !_options._pause && _options._startSimulation 
-                    && !_options._stopSimulation && _martianAmount){
+                    && !_options._stopSimulation && !_options._simulationFinished && _martianAmount){
                     if(!wait){
                         allowExecution(nextMartian, currentState, nextMartianIdx);
                     }
@@ -793,7 +946,22 @@ void simLoop(){
 
                 //Update tick counter
                 if(!_scheduleError && !_options._pause && _options._startSimulation 
-                    && !_options._stopSimulation && _options._showSimTime) _ticks++; 
+                    && !_options._stopSimulation && _options._showSimTime 
+                    && !_options._simulationFinished)
+                    {
+                        _ticks++;
+                        if(_martianAmount != 0){
+                            for(int i=0; i<_martianAmount; i++){
+                                if( ((Martian*)_martians.array[i])->martianState == DONE )
+                                    doneCounter++;
+                            }
+                            if(doneCounter == _martianAmount) {
+                                _options._simulationFinished = 1;
+                                _options._showSuccessPopUp = 1;
+                            }
+                            doneCounter = 0;
+                        }
+                    }  
  
                 _render = true;
                 break;

@@ -458,8 +458,8 @@ void martianHUD(struct nk_context *pNKcontext, Martian *pMartian){
     if (nk_tree_push_id(pNKcontext, NK_TREE_TAB, pMartian->title, NK_MAXIMIZED, pMartian->id)) {
         if(_options._showMartianPos){
             nk_layout_row_dynamic(pNKcontext, 30, 2);
-            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %d" , pMartian->posX);
-            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %d" , pMartian->posY);
+            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosX: %d" , pMartian->posX/TILE_SIZE);
+            nk_labelf(pNKcontext, NK_TEXT_LEFT, "PosY: %d" , pMartian->posY/TILE_SIZE);
         }
 
         nk_layout_row(pNKcontext, NK_DYNAMIC, 30, 2, ratio1);

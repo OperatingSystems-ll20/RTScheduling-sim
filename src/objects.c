@@ -45,6 +45,7 @@ Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, 
     Martian *martian = malloc(sizeof(Martian));
     martian->posX = pPosX;
     martian->posY = pPosY;
+    martian->martianState = NOT_DONE;
     martian->direction = pInitalDirection;
     martian->currentEnergy = 0;
     martian->maxEnergy = pMaxEnergy;

@@ -47,6 +47,8 @@ pthread_mutex_t _mutex;
 
 static void checkInit(bool pTest, const char *pDescription);
 static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY);
+static void checkNewDirection(Martian *pMartian);
+static void checkAlternatePath(Martian *pMartian, int *pNewX, int *pNewY);
 static bool checkMove(Martian *pMartian);
 static void *moveMartian(void *pMartianData);
 
