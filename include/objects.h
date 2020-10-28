@@ -8,11 +8,20 @@
 enum TILE_TYPE {WALL=0, PATH};
 enum DIRECTION {LEFT = 0, RIGHT, UP, DOWN};
 
+/**
+ * @brief Used for the insertion of new martians with the UI
+ * 
+ */
 typedef struct {
     int energy;
     int period;
 } NewMartian;
 
+/**
+ * @brief This struct holds all the variables needed for 
+ *        communication with the UI
+ * 
+ */
 typedef struct {
     int _exit;
     int _showHUD;
@@ -39,12 +48,20 @@ typedef struct {
     NewMartian _newMartians[MAX_MARTIANS];
 } Options;
 
+/**
+ * @brief Stores the position and type of the tiles that conforms the maze
+ * 
+ */
 typedef struct MazeTiles{
     int x;
     int y;
     int type;
 } MazeTile;
 
+/**
+ * @brief Stores the position of the maze image inside the screen
+ * 
+ */
 typedef struct {
     int x0;
     int y0;
@@ -52,6 +69,10 @@ typedef struct {
     int y1;
 } MazeBounds;
 
+/**
+ * @brief Holds all the information about a martian thread
+ * 
+ */
 typedef struct Martians{
     int id;
     char title[15];

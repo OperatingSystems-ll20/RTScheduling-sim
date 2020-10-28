@@ -13,7 +13,6 @@ static int SECOND_WIDTH;
 static int SECOND_HEIGHT;
 
 static int _simTime;
-// static int _numberOfMartians;
 
 FILE *_fp;
 ALLEGRO_BITMAP *_reportBMP;

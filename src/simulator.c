@@ -14,12 +14,29 @@
 #include <schedule.h>
 #include <simulator.h>
 
+/**
+ * @brief Checks if a variable was correctly initialized
+ * 
+ * @param pTest         Variable to check
+ * @param pDescription  Description
+ */
 static void checkInit(bool pTest, const char *pDescription){
     if(pTest) return;
     printf("Error: Couldn't initialize %s\n", pDescription);
     exit(1);
 }
 
+
+/**
+ * @brief Given a martian and its new calculated X,Y position; checks if there
+ *        is a collision with other martians inside the maze
+ * 
+ * @param pMartian Martian structure
+ * @param pNewX    New X position
+ * @param pNewY    New Y position
+ * @return true    Collision
+ * @return false   No collision
+ */
 static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY){
     bool collision = false;
     for(int i=0; i<_martianAmount; i++){
@@ -91,6 +108,15 @@ static bool checkMartianCollision(Martian *pMartian, int *pNewX, int *pNewY){
     return collision;
 }
 
+
+/**
+ * @brief Calculates the new position of a martian based on its current direction,
+ *        and then checks if there are collisions with the walls of the maze.
+ * 
+ * @param pMartian Martian structure
+ * @return true    Collision
+ * @return false   No collision
+ */
 static bool checkMove(Martian *pMartian){
     int x1 = pMartian->posX + MARTIAN_SIZE;
     int y1 = pMartian->posY + MARTIAN_SIZE;
@@ -104,10 +130,6 @@ static bool checkMove(Martian *pMartian){
         newX = pMartian->posX + _options._martianSpeed;
         newY = pMartian->posY;
         validMove = !checkMartianCollision(pMartian, &newX, &newY);
-        // if(!checkMartianCollision(pMartian, &newX, &newY)) validMove = true;
-        // else validMode
-        // pMartian->posX += MARTIAN_SPEED;
-        // validMove = true;
         if(validMove){
             pMartian->posX = newX;
             pMartian->posY = newY;
@@ -221,6 +243,15 @@ static bool checkMove(Martian *pMartian){
     return validMove;
 }
 
+
+/**
+ * @brief Function executed by the threads. Keeps track of the current time to set its 
+ *        timer and manages the movement of the martian, calculating a new random
+ *        direction each time a collision is detected
+ * 
+ * @param pMartianData Martian structure
+ * @return void* 
+ */
 static void *moveMartian(void *pMartianData){
     Martian *martian = (Martian*)pMartianData;
     martian->counter = 1;
@@ -283,7 +314,6 @@ static void *moveMartian(void *pMartianData){
             }
             
             martian->counter++;
-            // printf("Executing %s \t energy=%d \t counter=%d \t sec=%d\n", martian->title, martian->currentEnergy, martian->counter, _secTimer);
             pthread_mutex_unlock(&_mutex);
         }
 
@@ -303,6 +333,11 @@ static void *moveMartian(void *pMartianData){
     }
 }
 
+
+/**
+ * @brief Sets the default options used by the UI and for the control of the scheduling
+ * 
+ */
 static void setDefaultOptions(){
     _options._exit = 0;
     _options._showHUD = 0;
@@ -332,6 +367,11 @@ static void setDefaultOptions(){
     }
 }
 
+
+/**
+ * @brief Initializes all variables and arrays needed for the program.
+ * 
+ */
 static void setup(){
     checkInit(al_init(), "Allegro");
     checkInit(al_install_keyboard(), "Keyboard");
@@ -383,6 +423,12 @@ static void setup(){
     pthread_mutex_init(&_mutex, NULL);
 }
 
+
+/**
+ * @brief Loads the image the of the maze and its scale image. Fills the MazeBounds
+ *        structure with the position of the maze image on screen
+ * 
+ */
 static void loadAssets(){
     _mazeImg = al_load_bitmap("./res/maze.png");
     checkInit(_mazeImg, "Maze image");
@@ -395,6 +441,12 @@ static void loadAssets(){
     checkInit(_mazeImgTiny, "Maze image tiny");
 }
 
+
+/**
+ * @brief Generates a random color used for the martians
+ * 
+ * @return ALLEGRO_COLOR* Allegro color
+ */
 static ALLEGRO_COLOR* getRandomColor(){
     int randR = (rand() % (230 - 70 + 1)) + 70;
     int randG = (rand() % (230 - 70 + 1)) + 70;
@@ -404,6 +456,13 @@ static ALLEGRO_COLOR* getRandomColor(){
     return color;
 }
 
+
+/**
+ * @brief Allocates memory for the nk_image used to display the report using
+ *        the Nuklear library. The image of the report is created using an Allegro
+ *        bitmap.
+ * 
+ */
 static void createReportImage(){
     _reportImg = malloc(sizeof(struct nk_image));
     ALLEGRO_BITMAP *bmp = generateReport(_martianColors, _font);
@@ -413,6 +472,13 @@ static void createReportImage(){
     _reportImg->h = al_get_bitmap_height(bmp);
 }
 
+
+/**
+ * @brief Inserts a new martian into the dynamic array. Used for the manual operation mode
+ *        Also inserts the random color of the martian, the function pointer to its UI widget
+ *        and creates the corresponding thread
+ * 
+ */
 static void insertMartian(){
     Martian *martian;
     int initPosX, initPosY;
@@ -449,14 +515,18 @@ static void insertMartian(){
     pthread_create(pthread, NULL, moveMartian, _martians.array[martian->id]);
 }
 
+
+/**
+ * @brief Creates all the martians, random color, function pointers and threads for all the
+ *        martian in the automatic operation mode
+ * 
+ */
 static void createMartiansAutomaticMode(){
     bool row = true;
     int initPosX, initPosY;
     int spacing = MARTIAN_SIZE + 5;
     int gap = spacing;
 
-    // int ener[] = {1,2,6}; //TEST
-    // int per[] = {6,9,18};  //TEST
     for(int i=0; i<_martianAmount; i++){
         if(row){
             initPosX = (MAZE_START_X*TILE_SIZE) - gap;
@@ -486,6 +556,11 @@ static void createMartiansAutomaticMode(){
     }
 }
 
+
+/**
+ * @brief Start all the threads
+ * 
+ */
 static void startThreads(){
     //Allocate and start the threads
     for(int i=0; i<_martianAmount; i++){
@@ -495,16 +570,24 @@ static void startThreads(){
     }
 }
 
+
+/**
+ * @brief Stops all the threads
+ * 
+ */
 static void stopAllThreads(){
     for(int i=0; i<_martianAmount; i++){
         ((Martian*)_martians.array[i])->running = 0;
         ((Martian*)_martians.array[i])->update = 1;
-        // ((Martian*)_martians.array[i])->doWork = 1;
-        // pthread_cond_signal(&((Martian*)_martians.array[i])->cond);
         pthread_join(*(pthread_t*)_threads.array[i], NULL);
     }
 }
 
+
+/**
+ * @brief Free all the memory allocated
+ * 
+ */
 static void cleanUp(){
     nk_allegro5_font_del(_NKfont);
     nk_allegro5_shutdown();
@@ -525,6 +608,11 @@ static void cleanUp(){
         free(_reportImg);
 }
 
+
+/**
+ * @brief Checks the options structure to trigger the corresponding UI widget or popup
+ * 
+ */
 static void checkUIEvents(){
     //Draw Nuklear UI
     drawMenu(_NKcontext);
@@ -582,6 +670,11 @@ static void checkUIEvents(){
     }
 }
 
+
+/**
+ * @brief Render all changes on screen
+ * 
+ */
 static void render(){
     al_clear_to_color(al_map_rgb(19, 43, 81));
 
@@ -613,6 +706,13 @@ static void render(){
     _render = false;
 }
 
+
+/**
+ * @brief Main loop of the program.
+ * 
+ * Manages the second timer, scheduling, key events, UI events and render
+ * 
+ */
 void simLoop(){
     ALLEGRO_EVENT event;
     bool newEvent;
@@ -632,10 +732,13 @@ void simLoop(){
         newEvent = al_wait_for_event_until(_eventQueue, &event, &timeout);
         switch (event.type) {
             case ALLEGRO_EVENT_TIMER:
+                //Log the start of the simulation
                 if(firstSimLoop){
                     logSimEvent(SIM_START, _secTimer, "Simulation started");
                     firstSimLoop = 0;
                 }
+
+                //Set the arrival time in automatic mode
                 if(_options._operationMode == AUTOMATIC && _options._startSimulation 
                     && !_options._stopSimulation && firstExecution)
                 {
@@ -646,16 +749,14 @@ void simLoop(){
                         &nextMartianIdx, &wait, _secTimer);
                     _ticks = 0;
                     firstExecution = 0;
-                    // printf("Start at %d with ticks=%d and algorithm=%d\n", _secTimer, _ticks, _options._schedulingAlgorithm);
                 }
 
-                // printf("FRAME COUNTER=%d\n", _ticks);
+                //Advance second and insert new martian (if needed)
                 if(!_scheduleError && !_options._pause && _options._startSimulation 
                     && !_options._stopSimulation && _options._showSimTime)
                 {
                     if(_ticks == REFRESH_RATE-1){// 1 second
                         _secTimer++;
-                        // printf("Second %d\n", _secTimer);
                         _ticks = -1;
                     }
 
@@ -690,6 +791,7 @@ void simLoop(){
                     pthread_mutex_unlock(&_mutex);
                 }
 
+                //Update tick counter
                 if(!_scheduleError && !_options._pause && _options._startSimulation 
                     && !_options._stopSimulation && _options._showSimTime) _ticks++; 
  
@@ -716,7 +818,6 @@ void simLoop(){
                 break;
 
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                // stopAllThreads();
                 _options._exit = true;
                 break;
         } //End event switch

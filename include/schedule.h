@@ -11,7 +11,6 @@ extern DynamicArray _martians;
 extern Options _options;
 
 
-
 int rm_checkSchedulingError();
 int rm_getShortestPeriod();
 int rm_nextShortestPeriodIgnore(const int pIndexToIgnore);

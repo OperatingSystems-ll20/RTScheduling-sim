@@ -9,7 +9,12 @@ static int LEFT_OFFSET = 20;
 static int SECOND_WIDTH = 40;
 static int SECOND_HEIGHT = 50;
 
-
+/**
+ * @brief Gets the total time of simulation based on the information logged 
+ * 
+ * @param pFP   File descriptor of the log file
+ * @return int  Total simulation time
+ */
 static int getTimeSpan(FILE *pFP){
     int ret = 0;
     int startTime, endTime;
@@ -38,6 +43,18 @@ static int getTimeSpan(FILE *pFP){
     return endTime-startTime;
 }
 
+/**
+ * @brief Reads a line from the log file and extracts the relevant data, such as
+ *        the event type, the martian id and time of the event.
+ * 
+ * @param pRegex        Regex used to extract the data
+ * @param pLine         Line to parse
+ * @param pEventType    Reference to the event type
+ * @param pMartianId    Reference to the martian id
+ * @param pTime         Reference to the time of the event
+ * @return int          1->Successful
+ *                      0->Error
+ */                 
 static int parseLine(regex_t *pRegex, char *pLine, int *pEventType, int *pMartianId, int *pTime){
     int ret;
     regmatch_t match[3];
@@ -58,6 +75,11 @@ static int parseLine(regex_t *pRegex, char *pLine, int *pEventType, int *pMartia
     else return 0;
 }
 
+
+/**
+ * @brief Creates the bitmap image of the report
+ * 
+ */
 static void createBitmap(){
     _simTime = getTimeSpan(_fp);
 
@@ -67,6 +89,12 @@ static void createBitmap(){
     _reportBMP = al_create_bitmap(bmpWidth, BMP_HEIGHT);
 }
 
+
+/**
+ * @brief Draws the grid of seconds on the report bitmap
+ * 
+ * @param pFont  Font used to draw the seconds
+ */
 void createGrid(ALLEGRO_FONT *pFont){
     ALLEGRO_COLOR black = al_map_rgb(0,0,0);
     for(int i=0; i<=_simTime; i++){
@@ -81,11 +109,23 @@ void createGrid(ALLEGRO_FONT *pFont){
     }
 }
 
+
+/**
+ * @brief Saves the bitmap to disk
+ * 
+ */
 void saveReport(){
     al_save_bitmap("report.png", _reportBMP);
 }
 
 
+/**
+ * @brief Generates the report of the simulation
+ * 
+ * @param pColors           DynamicArray of colors of the martians
+ * @param pFont             Font to draw text
+ * @return ALLEGRO_BITMAP*  Allegro bitmap with the report image
+ */
 ALLEGRO_BITMAP* generateReport(DynamicArray pColors, ALLEGRO_FONT *pFont){
     _fp = fopen(LOG_FILE_PATH, "r");
     createBitmap();    

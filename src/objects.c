@@ -1,7 +1,13 @@
 #include <consts.h>
 #include <objects.h>
 
-
+/**
+ * @brief Fills an array of struct that holds the position of the tiles
+ *        of the maze and also its type (Wall or Path)
+ * 
+ * @param pMazeTiles Struct of type MazeTyle
+ * @param pMazeTiny  Allegro bitmap of the maze on scale 1 tyle->1px
+ */
 void loadMazeTiles(MazeTile pMazeTiles[MAZE_WIDTH][MAZE_HEIGHT], ALLEGRO_BITMAP* pMazeTiny){
     int width = al_get_bitmap_width(pMazeTiny);
     int height = al_get_bitmap_height(pMazeTiny);
@@ -24,6 +30,17 @@ void loadMazeTiles(MazeTile pMazeTiles[MAZE_WIDTH][MAZE_HEIGHT], ALLEGRO_BITMAP*
 }
 
 
+/**
+ * @brief Allocates memory for a new struct of type Martian, which holds all the
+ *        relevant information about one martian, such as its position, energy, period, etc.
+ * 
+ * @param pPosX             Initial X position
+ * @param pPosY             Initial Y position
+ * @param pInitalDirection  Initial direction
+ * @param pMaxEnergy        Energy  
+ * @param pPeriod           Period
+ * @return Martian*         Pointer to the struct allocated
+ */
 Martian *newMartian(int pPosX, int pPosY, int pInitalDirection, int pMaxEnergy, int pPeriod){
     Martian *martian = malloc(sizeof(Martian));
     martian->posX = pPosX;
